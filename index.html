@@ -10,11 +10,13 @@
     <main class="page-shell">
       <section class="intro">
         <p class="eyebrow">CitySignal</p>
-        <h1>Are Brooklyn residential noise complaints more frequent per day on weekends?</h1>
+        <h1>Brooklyn's weekend noise-complaint pattern gets much sharper after dark.</h1>
         <p>
-          Evidence from NYC Open Data 311 Service Requests, filtered to
-          <strong>borough = BROOKLYN</strong> and
-          <strong>complaint_type = Noise - Residential</strong>.
+          Explore how residential noise complaints reported to NYC 311 differ by day, hour,
+          and community board.
+        </p>
+        <p class="boundary">
+          311 complaints represent reports from residents, not direct measurements of noise.
         </p>
       </section>
 
@@ -22,17 +24,10 @@
         <div class="status">Loading NYC Open Data evidence...</div>
       </section>
 
-      <section class="notes">
-        <h2>Data Notes</h2>
-        <ul>
-          <li>The app requests daily aggregated counts, not the full 311 dataset.</li>
-          <li>Daily response rows are JSON objects shaped like <code>{ day, complaints }</code>; Socrata returns both values as strings.</li>
-          <li>Complete calendar weeks are used so weekday and weekend averages are comparable.</li>
-          <li>Zero-complaint days are filled locally if the API omits them.</li>
-          <li>No NYC Open Data app token is used. Tokens are optional for higher Socrata rate limits, but should not be hardcoded into client-side code.</li>
-          <li>Complaints are reports to 311; they do not measure actual noise levels or causation.</li>
-        </ul>
-      </section>
+      <footer class="source-footer">
+        Source: NYC 311 Service Requests from 2010 to Present. Household comparisons use 2024
+        ACS estimates.
+      </footer>
     </main>
 
     <script src="app.js"></script>

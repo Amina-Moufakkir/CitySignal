@@ -381,8 +381,8 @@ function renderWeekdayWeekendChart(summary) {
     <figure class="chart-card">
       <figcaption>
         <span>Chart 1</span>
-        <strong>Weekday vs Weekend</strong>
-        <em>Average daily Brooklyn Noise - Residential complaints, primary 2024 range.</em>
+        <strong>Weekends receive more residential noise complaints</strong>
+        <em>Average complaints per day.</em>
       </figcaption>
       <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Weekday average 210.6 complaints and weekend average 374.5 complaints">
         <line class="axis" x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}"></line>
@@ -407,7 +407,7 @@ function renderWeekdayWeekendChart(summary) {
           })
           .join("")}
       </svg>
-      <p class="chart-note">Weekend average was ${formatPercentage(summary.percentageDifference)} higher. Weekday total: ${formatNumber(summary.weekdayTotal)} over ${summary.weekdayDays} days; weekend total: ${formatNumber(summary.weekendTotal)} over ${summary.weekendDays} days.</p>
+      <p class="chart-note">Weekend days averaged ${formatNumber(summary.weekendAverage, 1)} complaints compared with ${formatNumber(summary.weekdayAverage, 1)} on weekdays.</p>
     </figure>
   `;
 }
@@ -434,8 +434,8 @@ function renderHourlyChart(hourlySummary) {
     <figure class="chart-card chart-card-wide">
       <figcaption>
         <span>Chart 2</span>
-        <strong>Hourly Weekday vs Weekend Pattern</strong>
-        <em>Average Brooklyn Noise - Residential complaints per weekday/weekend day by created_date hour.</em>
+        <strong>The gap grows sharply late at night</strong>
+        <em>Average Brooklyn residential noise complaints per day by hour.</em>
       </figcaption>
       <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Line chart comparing weekday and weekend complaints by hour of day">
         <line class="axis" x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}"></line>
@@ -460,7 +460,7 @@ function renderHourlyChart(hourlySummary) {
           <line class="line weekend-line" x1="116" y1="0" x2="144" y2="0"></line><text x="152" y="4">weekend</text>
         </g>
       </svg>
-      <p class="chart-note">Late-night hours are visually shaded only to show the validated 10 PM-3:59 AM comparison window. Filled ${formatNumber(hourlySummary.zeroCellsFilled)} missing day-hour cells with zero; rejected ${hourlySummary.rejectedRows} malformed aggregate rows.</p>
+      <p class="chart-note">The weekend-weekday gap is largest during the late-night hours highlighted on the chart.</p>
     </figure>
   `;
 }
@@ -478,7 +478,7 @@ function renderBoardChart(boardRates) {
     <figure class="chart-card chart-card-wide">
       <figcaption>
         <span>Chart 3</span>
-        <strong>Normalized Community Board Comparison</strong>
+        <strong>Complaint rates vary widely across Brooklyn community boards</strong>
         <em>Saturday-night Loud Music/Party complaints per 1,000 occupied households.</em>
       </figcaption>
       <svg class="chart board-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Horizontal bar chart of normalized complaint rates for all Brooklyn community boards">
@@ -502,8 +502,34 @@ function renderBoardChart(boardRates) {
           .join("")}
         <text class="axis-label" x="${margin.left + plotWidth / 2}" y="${height - 8}" text-anchor="middle">complaints per 1,000 occupied households</text>
       </svg>
-      <p class="chart-note">${PHASE3_BOARD_DATASET.metadata.denominatorSource}; complaint period ${PHASE3_BOARD_DATASET.metadata.complaintPeriod}. ${PHASE3_BOARD_DATASET.metadata.limitation}</p>
+      <p class="chart-note">Comparing complaints relative to occupied households keeps larger boards from dominating by size alone.</p>
     </figure>
+  `;
+}
+
+function renderKeyMetrics(summary) {
+  return `
+    <section class="key-metrics" aria-labelledby="key-metrics-title">
+      <div>
+        <p class="eyebrow">Key Metrics</p>
+        <h2 id="key-metrics-title">Primary findings</h2>
+        <p>Average daily Brooklyn residential noise complaints in the primary 2024 period.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <span>Weekday average</span>
+          <strong>${formatNumber(summary.weekdayAverage, 1)}</strong>
+        </div>
+        <div class="metric">
+          <span>Weekend average</span>
+          <strong>${formatNumber(summary.weekendAverage, 1)}</strong>
+        </div>
+        <div class="metric">
+          <span>Weekend difference</span>
+          <strong>+${formatPercentage(summary.percentageDifference)}</strong>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -511,9 +537,9 @@ function renderVisualizations(primarySummary, hourlySummary, boardRates) {
   return `
     <section class="visualizations" aria-labelledby="visualization-title">
       <div class="section-head">
-        <p class="eyebrow">Evidence Charts</p>
-        <h2 id="visualization-title">Three views of the validated complaint-reporting pattern</h2>
-        <p>These charts show 311 complaint reports, not actual noise levels or causation. Axes start at zero and units are shown explicitly.</p>
+        <p class="eyebrow">Data Exploration</p>
+        <h2 id="visualization-title">Explore the pattern</h2>
+        <p>The charts show how complaint reporting changes by day type, hour, and community board.</p>
       </div>
       <div class="chart-grid">
         ${renderWeekdayWeekendChart(primarySummary)}
@@ -524,79 +550,14 @@ function renderVisualizations(primarySummary, hourlySummary, boardRates) {
   `;
 }
 
-function renderSummary(summary) {
-  const verdict = summary.supported ? "Hypothesis supported" : "Hypothesis not supported";
-  const verdictClass = summary.supported ? "verdict" : "verdict unsupported";
-
+function renderInsight() {
   return `
-    <article class="range-panel">
-      <div class="panel-head">
-        <div>
-          <h2>${summary.label}</h2>
-          <p>${summary.display}, 52 complete Monday-Sunday weeks.</p>
-        </div>
-        <span class="${verdictClass}">${verdict}</span>
-      </div>
-
-      <div class="metrics">
-        <div class="metric">
-          <span>Average weekday complaints</span>
-          <strong>${formatNumber(summary.weekdayAverage, 1)}</strong>
-        </div>
-        <div class="metric">
-          <span>Average weekend complaints</span>
-          <strong>${formatNumber(summary.weekendAverage, 1)}</strong>
-        </div>
-        <div class="metric">
-          <span>Weekend difference</span>
-          <strong>${formatPercentage(summary.percentageDifference)}</strong>
-        </div>
-        <div class="metric">
-          <span>Total matching complaints</span>
-          <strong>${formatNumber(summary.totalRecords)}</strong>
-        </div>
-      </div>
-
-      <div class="evidence">
-        <div>
-          <h3>Auditable Counts</h3>
-          <table>
-            <tbody>
-              <tr><th>Weekday days observed</th><td>${summary.weekdayDays}</td></tr>
-              <tr><th>Weekend days observed</th><td>${summary.weekendDays}</td></tr>
-              <tr><th>Total weekday complaints</th><td>${formatNumber(summary.weekdayTotal)}</td></tr>
-              <tr><th>Total weekend complaints</th><td>${formatNumber(summary.weekendTotal)}</td></tr>
-              <tr><th>API daily rows returned</th><td>${summary.apiReturnedDays}</td></tr>
-              <tr><th>Rejected aggregate rows</th><td>${summary.rejectedRows}</td></tr>
-              <tr><th>Zero days filled locally</th><td>${summary.zeroDaysFilled}</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div>
-          <h3>Response Checks</h3>
-          <table>
-            <tbody>
-              <tr><th>Records with created_date</th><td>${formatNumber(summary.recordsWithCreatedDate)}</td></tr>
-              <tr><th>Records with complaint_type</th><td>${formatNumber(summary.recordsWithComplaintType)}</td></tr>
-              <tr><th>Records with borough</th><td>${formatNumber(summary.recordsWithBorough)}</td></tr>
-              <tr><th>Minimum created_date</th><td>${summary.minCreatedDate}</td></tr>
-              <tr><th>Maximum created_date</th><td>${summary.maxCreatedDate}</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div>
-          <h3>Daily Count Request URL</h3>
-          <a class="api-url" href="${summary.dailyUrl}" target="_blank" rel="noreferrer">${summary.dailyUrl}</a>
-        </div>
-
-        <div>
-          <h3>Completeness Check URL</h3>
-          <a class="api-url" href="${summary.inspectUrl}" target="_blank" rel="noreferrer">${summary.inspectUrl}</a>
-        </div>
-      </div>
-    </article>
+    <section class="insight" aria-labelledby="insight-title">
+      <p class="eyebrow">Current Insight</p>
+      <h2 id="insight-title">Insight</h2>
+      <p>BK04's unusually high Saturday-night residential noise complaint-reporting rate persists after comparisons with household size, residential density, nightlife-license exposure, and repeated locations; complaints are distributed across hundreds of residential tax lots rather than being dominated by a small set of locations.</p>
+      <p class="boundary">These patterns can help identify where and when elevated residential-noise reporting deserves closer investigation, without assuming the complaints measure actual noise or explain its cause.</p>
+    </section>
   `;
 }
 
@@ -628,8 +589,9 @@ async function load() {
   const boardRates = buildBoardRates();
 
   document.querySelector("#results").innerHTML = [
+    renderKeyMetrics(summaries[0]),
     renderVisualizations(summaries[0], hourlySummary, boardRates),
-    summaries.map(renderSummary).join(""),
+    renderInsight(),
   ].join("");
 }
 
