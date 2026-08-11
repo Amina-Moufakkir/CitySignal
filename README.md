@@ -98,15 +98,25 @@ Next research question: Is the Saturday-night `Loud Music/Party` concentration g
 
 ### Phase 3 - Normalize and Compare
 
-Raw complaint counts can be misleading because community boards differ in size. CitySignal therefore normalized Saturday-night `Loud Music/Party` complaints using 2024 ACS 5-year estimates aggregated to Brooklyn CDTAs.
+Raw geographic complaint counts can be misleading because community boards differ in size. CitySignal therefore normalized Saturday-night `Loud Music/Party` complaints using 2024 ACS 5-year estimates aggregated to Brooklyn Community District Tabulation Areas (CDTAs).
 
-The pre-registered hypothesis, that either CB01 or CB04 would fall outside the top five after normalization, was not supported. CB04 remained the highest-ranked board at `30.6` complaints per 1,000 occupied households, while CB01 remained third. A population-based sensitivity check also kept CB04 first and CB01 near the top.
+Primary metric: Saturday-night `Loud Music/Party` complaints per 1,000 occupied households. Population normalization was used as a sensitivity check.
 
-The stress period produced the same broad result: CB04 remained first and CB01 second.
+Pre-registered normalization test: after household normalization, at least one of CB01 or CB04 would fall outside the top five. This hypothesis was not supported. CB04 remained #1 at `30.6` complaints per 1,000 occupied households, and CB01 remained near the top. A population-based sensitivity check also kept CB04 first and CB01 near the top. The stress period preserved the result: CB04 remained first and CB01 second.
 
-Current insight: CB04's high Saturday-night `Loud Music/Party` complaint volume is not explained simply by having more households; it remains unusually high after normalization.
+Alternative explanations tested:
 
-Boundary: This is a 311 complaint-reporting rate, not a direct measure of actual noise, neighborhood quality, or causation.
+- Residential density showed only a weak association with normalized complaint rates and did not explain BK04's unusually high complaint-reporting rate.
+- Current on-premises alcohol-license exposure showed a very weak relationship with normalized complaint rates and did not explain BK04.
+- A pre-registered repeated-location hypothesis was not supported: the top 10 valid BBL locations accounted for only `10.4%` of BK04 complaints in the primary period and `8.4%` in the stress period.
+- Roughly `78-81%` of valid BBL locations appeared on only one Saturday night.
+- Same-location/same-night multi-complaint bursts were still meaningful, so complaint counts must not be interpreted as unique noise incidents.
+
+Phase 3 conclusion: BK04's unusually high Saturday-night residential noise complaint-reporting rate persists after accounting for household size, residential density, nightlife-license exposure, and repeated-location concentration; complaints are distributed across hundreds of residential tax lots, with some same-night reporting bursts.
+
+Interpretation boundary: this is a pattern in 311 complaint reporting. It does not measure actual noise levels, establish causation, identify problematic residents or buildings, or imply neighborhood quality.
+
+Limitation: CDTAs approximate, but are not identical to, legal community-district boundaries. The ACS denominator uses 2024 five-year estimates, while the stress complaint period extends into 2025 and early 2026.
 
 ## Run the App
 
