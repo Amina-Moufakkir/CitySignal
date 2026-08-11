@@ -88,6 +88,8 @@ Day-of-week test: Saturday night was the strongest night in both periods.
 
 Descriptor test: `Loud Music/Party` accounted for `96.4%` of the Saturday-vs-Monday-Thursday excess in the primary range and `93.7%` in the stress range.
 
+Geographic concentration test: a predefined hypothesis that the top three valid Brooklyn community boards would account for at least `40%` of Saturday-night `Loud Music/Party` complaints was not supported. The top three accounted for `38.0%` in the primary period and `37.7%` in the stress period. Boards `01` and `04` remained consistently high-volume, but the pattern was distributed across multiple areas rather than dominated by only three boards.
+
 Current candidate insight: Brooklyn's Saturday-night spike in residential-noise 311 complaints is overwhelmingly concentrated in `Loud Music/Party` reports.
 
 Interpretation boundary: this describes patterns in 311 complaint reporting. It does not measure actual noise levels or establish why the pattern occurs.
