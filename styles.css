@@ -105,6 +105,7 @@ h3 {
 }
 
 .status,
+.borough-control,
 .key-metrics,
 .chart-card,
 .insight,
@@ -117,6 +118,33 @@ h3 {
 .status {
   padding: 18px;
   color: var(--muted);
+}
+
+.status.error {
+  color: var(--warn);
+}
+
+.borough-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.borough-control label {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.borough-control select {
+  width: min(100%, 220px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
 }
 
 .key-metrics {
@@ -314,6 +342,15 @@ rect.board-bar {
 
   .metrics {
     grid-template-columns: 1fr;
+  }
+
+  .borough-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .borough-control select {
+    width: 100%;
   }
 
   .metric {

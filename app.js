@@ -1,6 +1,13 @@
 const DATASET_URL = "https://data.cityofnewyork.us/resource/erm2-nwe9.json";
+const DEFAULT_BOROUGH = "BROOKLYN";
+const BOROUGHS = [
+  { label: "Brooklyn", value: "BROOKLYN" },
+  { label: "Manhattan", value: "MANHATTAN" },
+  { label: "Queens", value: "QUEENS" },
+  { label: "Bronx", value: "BRONX" },
+  { label: "Staten Island", value: "STATEN ISLAND" },
+];
 const FILTERS = {
-  borough: "BROOKLYN",
   complaintType: "Noise - Residential",
 };
 
@@ -48,19 +55,51 @@ const PHASE3_BOARD_DATASET = {
   ],
 };
 
-function whereClause(range) {
+function normalizeBorough(value) {
+  return BOROUGHS.some((borough) => borough.value === value) ? value : DEFAULT_BOROUGH;
+}
+
+function boroughLabel(value) {
+  return BOROUGHS.find((borough) => borough.value === normalizeBorough(value)).label;
+}
+
+function possessiveLabel(label) {
+  return label.endsWith("s") ? `${label}'` : `${label}'s`;
+}
+
+function showsBrooklynDeepDive(borough) {
+  return normalizeBorough(borough) === DEFAULT_BOROUGH;
+}
+
+function createRequestTracker() {
+  let currentRequest = 0;
+
+  return {
+    next() {
+      currentRequest += 1;
+      return currentRequest;
+    },
+    isCurrent(requestId) {
+      return requestId === currentRequest;
+    },
+  };
+}
+
+function whereClause(range, borough = DEFAULT_BOROUGH) {
+  const selectedBorough = normalizeBorough(borough);
+
   return [
-    `borough='${FILTERS.borough}'`,
+    `borough='${selectedBorough}'`,
     `complaint_type='${FILTERS.complaintType}'`,
     `created_date >= '${range.start}T00:00:00'`,
     `created_date < '${range.endExclusive}T00:00:00'`,
   ].join(" AND ");
 }
 
-function dailyUrl(range) {
+function dailyUrl(range, borough = DEFAULT_BOROUGH) {
   const params = new URLSearchParams({
     $select: "date_trunc_ymd(created_date) AS day, count(*) AS complaints",
-    $where: whereClause(range),
+    $where: whereClause(range, borough),
     $group: "date_trunc_ymd(created_date)",
     $order: "day",
     $limit: "5000",
@@ -69,11 +108,11 @@ function dailyUrl(range) {
   return `${DATASET_URL}?${params.toString()}`;
 }
 
-function hourlyUrl(range) {
+function hourlyUrl(range, borough = DEFAULT_BOROUGH) {
   const params = new URLSearchParams({
     $select:
       "date_trunc_ymd(created_date) AS day, date_extract_hh(created_date) AS hour, count(*) AS complaints",
-    $where: whereClause(range),
+    $where: whereClause(range, borough),
     $group: "date_trunc_ymd(created_date), date_extract_hh(created_date)",
     $order: "day, hour",
     $limit: "10000",
@@ -82,13 +121,13 @@ function hourlyUrl(range) {
   return `${DATASET_URL}?${params.toString()}`;
 }
 
-function inspectUrl(range) {
+function inspectUrl(range, borough = DEFAULT_BOROUGH) {
   const params = new URLSearchParams({
     $select:
       "count(*) AS total_records, count(created_date) AS records_with_created_date, " +
       "count(complaint_type) AS records_with_complaint_type, count(borough) AS records_with_borough, " +
       "min(created_date) AS min_created_date, max(created_date) AS max_created_date",
-    $where: whereClause(range),
+    $where: whereClause(range, borough),
   });
 
   return `${DATASET_URL}?${params.toString()}`;
@@ -198,7 +237,7 @@ function normalizeHourlyRows(hourlyRows, range) {
   return { countsByDayHour, rejectedRows };
 }
 
-function summarizeHourly(range, hourlyRows) {
+function summarizeHourly(range, hourlyRows, borough = DEFAULT_BOROUGH) {
   const { countsByDayHour, rejectedRows } = normalizeHourlyRows(hourlyRows, range);
   const hours = Array.from({ length: 24 }, (_, hour) => ({
     hour,
@@ -253,7 +292,7 @@ function summarizeHourly(range, hourlyRows) {
     apiReturnedRows: hourlyRows.length,
     rejectedRows,
     zeroCellsFilled,
-    hourlyUrl: hourlyUrl(range),
+    hourlyUrl: hourlyUrl(range, borough),
   };
 }
 
@@ -287,7 +326,7 @@ function buildBoardRates(dataset = PHASE3_BOARD_DATASET) {
     .sort((a, b) => b.complaintsPer1000Households - a.complaintsPer1000Households);
 }
 
-function summarize(range, dailyRows, inspectRow) {
+function summarize(range, dailyRows, inspectRow, borough = DEFAULT_BOROUGH) {
   const { countsByDay, rejectedRows } = normalizeDailyRows(dailyRows, range);
 
   let weekdayDays = 0;
@@ -341,8 +380,8 @@ function summarize(range, dailyRows, inspectRow) {
     recordsWithBorough: Number(inspectRow?.records_with_borough ?? 0),
     minCreatedDate: inspectRow?.min_created_date ?? "n/a",
     maxCreatedDate: inspectRow?.max_created_date ?? "n/a",
-    dailyUrl: dailyUrl(range),
-    inspectUrl: inspectUrl(range),
+    dailyUrl: dailyUrl(range, borough),
+    inspectUrl: inspectUrl(range, borough),
   };
 }
 
@@ -357,11 +396,53 @@ function formatPercentage(value) {
   return value === null ? "n/a" : `${formatNumber(value, 1)}%`;
 }
 
+function formatSignedPercentage(value) {
+  if (value === null) {
+    return "n/a";
+  }
+
+  return `${value >= 0 ? "+" : ""}${formatPercentage(value)}`;
+}
+
+function hourLabel(hour) {
+  if (hour === 0) {
+    return "12 AM";
+  }
+
+  if (hour < 12) {
+    return `${hour} AM`;
+  }
+
+  if (hour === 12) {
+    return "12 PM";
+  }
+
+  return `${hour - 12} PM`;
+}
+
+function largestHourlyGap(hourlySummary) {
+  return hourlySummary.hours.reduce((largest, row) => {
+    const gap = row.weekendAverage - row.weekdayAverage;
+
+    if (!largest || gap > largest.gap) {
+      return {
+        hour: row.hour,
+        gap,
+        weekdayAverage: row.weekdayAverage,
+        weekendAverage: row.weekendAverage,
+      };
+    }
+
+    return largest;
+  }, null);
+}
+
 function chartScale(maxValue, chartSize) {
   return (value) => (maxValue === 0 ? 0 : (value / maxValue) * chartSize);
 }
 
-function renderWeekdayWeekendChart(summary) {
+function renderWeekdayWeekendChart(summary, selectedBorough) {
+  const selectedLabel = boroughLabel(selectedBorough);
   const width = 680;
   const height = 320;
   const margin = { top: 24, right: 28, bottom: 56, left: 58 };
@@ -382,9 +463,9 @@ function renderWeekdayWeekendChart(summary) {
       <figcaption>
         <span>Chart 1</span>
         <strong>Weekends receive more residential noise complaints</strong>
-        <em>Average complaints per day.</em>
+        <em>Average ${selectedLabel} complaints per day.</em>
       </figcaption>
-      <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Weekday average 210.6 complaints and weekend average 374.5 complaints">
+      <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${selectedLabel} weekday average ${formatNumber(summary.weekdayAverage, 1)} complaints and weekend average ${formatNumber(summary.weekendAverage, 1)} complaints">
         <line class="axis" x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}"></line>
         <line class="axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height - margin.bottom}"></line>
         <text class="axis-label" x="14" y="${margin.top + 8}" transform="rotate(-90 14 ${margin.top + 8})">complaints per day</text>
@@ -412,7 +493,8 @@ function renderWeekdayWeekendChart(summary) {
   `;
 }
 
-function renderHourlyChart(hourlySummary) {
+function renderHourlyChart(hourlySummary, selectedBorough) {
+  const selectedLabel = boroughLabel(selectedBorough);
   const width = 760;
   const height = 360;
   const margin = { top: 24, right: 32, bottom: 62, left: 58 };
@@ -435,7 +517,7 @@ function renderHourlyChart(hourlySummary) {
       <figcaption>
         <span>Chart 2</span>
         <strong>The gap grows sharply late at night</strong>
-        <em>Average Brooklyn residential noise complaints per day by hour.</em>
+        <em>Average ${selectedLabel} residential noise complaints per day by hour.</em>
       </figcaption>
       <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Line chart comparing weekday and weekend complaints by hour of day">
         <line class="axis" x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}"></line>
@@ -507,13 +589,15 @@ function renderBoardChart(boardRates) {
   `;
 }
 
-function renderKeyMetrics(summary) {
+function renderKeyMetrics(summary, selectedBorough) {
+  const selectedLabel = boroughLabel(selectedBorough);
+
   return `
     <section class="key-metrics" aria-labelledby="key-metrics-title">
       <div>
         <p class="eyebrow">Key Metrics</p>
-        <h2 id="key-metrics-title">Primary findings</h2>
-        <p>Average daily Brooklyn residential noise complaints in the primary 2024 period.</p>
+        <h2 id="key-metrics-title">${selectedLabel} at a glance</h2>
+        <p>Average daily residential noise complaints in the primary 2024 period.</p>
       </div>
       <div class="metrics">
         <div class="metric">
@@ -526,37 +610,83 @@ function renderKeyMetrics(summary) {
         </div>
         <div class="metric">
           <span>Weekend difference</span>
-          <strong>+${formatPercentage(summary.percentageDifference)}</strong>
+          <strong>${formatSignedPercentage(summary.percentageDifference)}</strong>
         </div>
       </div>
     </section>
   `;
 }
 
-function renderVisualizations(primarySummary, hourlySummary, boardRates) {
+function renderBoroughSelector(selectedBorough) {
+  const selectedValue = normalizeBorough(selectedBorough);
+
+  return `
+    <section class="borough-control" aria-labelledby="borough-selector-label">
+      <label id="borough-selector-label" for="borough-selector">Compare NYC boroughs</label>
+      <select id="borough-selector">
+        ${BOROUGHS.map(
+          (borough) =>
+            `<option value="${borough.value}"${borough.value === selectedValue ? " selected" : ""}>${borough.label}</option>`,
+        ).join("")}
+      </select>
+    </section>
+  `;
+}
+
+function renderBoroughComparison(primarySummary, hourlySummary, selectedBorough) {
   return `
     <section class="visualizations" aria-labelledby="visualization-title">
       <div class="section-head">
         <p class="eyebrow">Data Exploration</p>
-        <h2 id="visualization-title">Explore the pattern</h2>
-        <p>The charts show how complaint reporting changes by day type, hour, and community board.</p>
+        <h2 id="visualization-title">Compare NYC boroughs</h2>
+        <p>The charts show how complaint reporting changes by day type and hour.</p>
       </div>
       <div class="chart-grid">
-        ${renderWeekdayWeekendChart(primarySummary)}
-        ${renderHourlyChart(hourlySummary)}
-        ${renderBoardChart(boardRates)}
+        ${renderWeekdayWeekendChart(primarySummary, selectedBorough)}
+        ${renderHourlyChart(hourlySummary, selectedBorough)}
       </div>
     </section>
   `;
 }
 
-function renderInsight() {
+function renderSelectedBoroughInsight(summary, hourlySummary, selectedBorough) {
+  const selectedLabel = boroughLabel(selectedBorough);
+  const percentage = summary.percentageDifference;
+  const averageDirection = percentage === null || percentage >= 0 ? "higher" : "lower";
+  const hourlyGap = largestHourlyGap(hourlySummary);
+  const hourlySentence =
+    hourlyGap && hourlyGap.gap >= 0
+      ? `The hourly pattern shows the largest weekend-weekday difference around ${hourLabel(hourlyGap.hour)}, when weekend days averaged ${formatNumber(hourlyGap.gap, 1)} more complaints than weekdays in that hour.`
+      : `The hourly pattern does not show a positive weekend-weekday difference in the 2024 comparison period.`;
+
   return `
-    <section class="insight" aria-labelledby="insight-title">
-      <p class="eyebrow">Current Insight</p>
-      <h2 id="insight-title">Insight</h2>
-      <p>BK04's unusually high Saturday-night residential noise complaint-reporting rate persists after comparisons with household size, residential density, nightlife-license exposure, and repeated locations; complaints are distributed across hundreds of residential tax lots rather than being dominated by a small set of locations.</p>
-      <p class="boundary">These patterns can help identify where and when elevated residential-noise reporting deserves closer investigation, without assuming the complaints measure actual noise or explain its cause.</p>
+    <section class="insight" aria-labelledby="selected-borough-insight-title">
+      <p class="eyebrow">Selected Borough Insight</p>
+      <h2 id="selected-borough-insight-title">${selectedLabel} insight</h2>
+      <p>${possessiveLabel(selectedLabel)} weekend residential-noise complaint average is ${formatPercentage(Math.abs(percentage ?? 0))} ${averageDirection} than its weekday average in the 2024 comparison period.</p>
+      <p>${hourlySentence}</p>
+      <p class="boundary">This describes 311 complaint reporting, not actual noise levels or causation.</p>
+    </section>
+  `;
+}
+
+function renderBrooklynDeepDive(boardRates) {
+  return `
+    <section class="visualizations" aria-labelledby="brooklyn-deep-dive-title">
+      <div class="section-head">
+        <p class="eyebrow">Brooklyn Deep Dive</p>
+        <h2 id="brooklyn-deep-dive-title">Brooklyn community-board comparison</h2>
+        <p>This chart is a Brooklyn-specific result using 2024 ACS household estimates. It does not change when another borough is selected above.</p>
+      </div>
+      <div class="chart-grid">
+        ${renderBoardChart(boardRates)}
+      </div>
+      <div class="insight brooklyn-insight" aria-labelledby="brooklyn-insight-title">
+        <p class="eyebrow">Brooklyn Deep-Dive Insight</p>
+        <h2 id="brooklyn-insight-title">BK04 remains unusually high</h2>
+        <p>BK04's unusually high Saturday-night residential noise complaint-reporting rate persists after comparisons with household size, residential density, nightlife-license exposure, and repeated locations; complaints are distributed across hundreds of residential tax lots rather than being dominated by a small set of locations.</p>
+        <p class="boundary">These patterns can help identify where and when elevated residential-noise reporting deserves closer investigation, without assuming the complaints measure actual noise or explain its cause.</p>
+      </div>
     </section>
   `;
 }
@@ -571,28 +701,88 @@ async function fetchJson(url) {
   return response.json();
 }
 
+function renderLoading(selectedBorough) {
+  return `
+    ${renderBoroughSelector(selectedBorough)}
+    <div class="status">Loading ${boroughLabel(selectedBorough)} residential noise complaint data...</div>
+    ${showsBrooklynDeepDive(selectedBorough) ? renderBrooklynDeepDive(buildBoardRates()) : ""}
+  `;
+}
+
+function renderError(selectedBorough, message) {
+  return `
+    ${renderBoroughSelector(selectedBorough)}
+    <div class="status error">Could not load ${boroughLabel(selectedBorough)} complaint data. ${message}</div>
+    ${showsBrooklynDeepDive(selectedBorough) ? renderBrooklynDeepDive(buildBoardRates()) : ""}
+  `;
+}
+
+function renderApp(primarySummary, hourlySummary, boardRates, selectedBorough) {
+  const sections = [
+    renderBoroughSelector(selectedBorough),
+    renderKeyMetrics(primarySummary, selectedBorough),
+    renderBoroughComparison(primarySummary, hourlySummary, selectedBorough),
+    renderSelectedBoroughInsight(primarySummary, hourlySummary, selectedBorough),
+  ];
+
+  if (showsBrooklynDeepDive(selectedBorough)) {
+    sections.push(renderBrooklynDeepDive(boardRates));
+  }
+
+  return sections.join("");
+}
+
 async function load() {
-  const [summaries, primaryHourlyRows] = await Promise.all([
-    Promise.all(
-    RANGES.map(async (range) => {
-      const [dailyRows, inspectRows] = await Promise.all([
-        fetchJson(dailyUrl(range)),
-        fetchJson(inspectUrl(range)),
+  const results = document.querySelector("#results");
+  const boardRates = buildBoardRates();
+  const requestTracker = createRequestTracker();
+
+  async function updateBorough(nextBorough) {
+    const selectedBorough = normalizeBorough(nextBorough);
+    const requestId = requestTracker.next();
+
+    results.innerHTML = renderLoading(selectedBorough);
+    attachBoroughListener();
+
+    try {
+      const [dailyRows, inspectRows, hourlyRows] = await Promise.all([
+        fetchJson(dailyUrl(RANGES[0], selectedBorough)),
+        fetchJson(inspectUrl(RANGES[0], selectedBorough)),
+        fetchJson(hourlyUrl(RANGES[0], selectedBorough)),
       ]);
 
-      return summarize(range, dailyRows, inspectRows[0]);
-    }),
-    ),
-    fetchJson(hourlyUrl(RANGES[0])),
-  ]);
-  const hourlySummary = summarizeHourly(RANGES[0], primaryHourlyRows);
-  const boardRates = buildBoardRates();
+      if (!requestTracker.isCurrent(requestId)) {
+        return;
+      }
 
-  document.querySelector("#results").innerHTML = [
-    renderKeyMetrics(summaries[0]),
-    renderVisualizations(summaries[0], hourlySummary, boardRates),
-    renderInsight(),
-  ].join("");
+      const summary = summarize(RANGES[0], dailyRows, inspectRows[0], selectedBorough);
+      const hourlySummary = summarizeHourly(RANGES[0], hourlyRows, selectedBorough);
+
+      results.innerHTML = renderApp(summary, hourlySummary, boardRates, selectedBorough);
+      attachBoroughListener();
+    } catch (error) {
+      if (!requestTracker.isCurrent(requestId)) {
+        return;
+      }
+
+      results.innerHTML = renderError(selectedBorough, error.message);
+      attachBoroughListener();
+    }
+  }
+
+  function attachBoroughListener() {
+    const selector = document.querySelector("#borough-selector");
+
+    if (!selector) {
+      return;
+    }
+
+    selector.addEventListener("change", (event) => {
+      updateBorough(event.target.value);
+    });
+  }
+
+  updateBorough(DEFAULT_BOROUGH);
 }
 
 if (typeof document !== "undefined") {
@@ -607,17 +797,27 @@ if (typeof document !== "undefined") {
 
 if (typeof module !== "undefined") {
   module.exports = {
+    BOROUGHS,
+    DEFAULT_BOROUGH,
     RANGES,
     PHASE3_BOARD_DATASET,
+    boroughLabel,
+    possessiveLabel,
+    createRequestTracker,
     dailyUrl,
     hourlyUrl,
+    hourLabel,
     inspectUrl,
     isWeekendDay,
+    largestHourlyGap,
     normalizeDailyRows,
     normalizeHourlyRows,
+    normalizeBorough,
     summarize,
     summarizeHourly,
+    showsBrooklynDeepDive,
     buildBoardRates,
+    whereClause,
     utcDateFromDay,
     isValidDay,
   };

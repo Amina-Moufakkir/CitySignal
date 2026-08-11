@@ -2,13 +2,24 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  BOROUGHS,
+  DEFAULT_BOROUGH,
   PHASE3_BOARD_DATASET,
+  createRequestTracker,
+  dailyUrl,
   buildBoardRates,
+  hourLabel,
+  hourlyUrl,
   isWeekendDay,
+  largestHourlyGap,
   normalizeDailyRows,
   normalizeHourlyRows,
+  normalizeBorough,
+  possessiveLabel,
   summarize,
   summarizeHourly,
+  showsBrooklynDeepDive,
+  whereClause,
 } = require("./app");
 
 const inspectRow = {
@@ -25,6 +36,34 @@ test("classifies weekdays and weekends by calendar day", () => {
   assert.equal(isWeekendDay("2024-01-05"), false);
   assert.equal(isWeekendDay("2024-01-06"), true);
   assert.equal(isWeekendDay("2024-01-07"), true);
+});
+
+test("defines exactly five valid borough choices", () => {
+  assert.deepEqual(
+    BOROUGHS.map((borough) => borough.value),
+    ["BROOKLYN", "MANHATTAN", "QUEENS", "BRONX", "STATEN ISLAND"],
+  );
+});
+
+test("constructs borough-specific daily and hourly URLs", () => {
+  for (const borough of BOROUGHS) {
+    const daily = decodeURIComponent(
+      dailyUrl({ start: "2024-01-01", endExclusive: "2024-01-08" }, borough.value),
+    ).replace(/\+/g, " ");
+    const hourly = decodeURIComponent(
+      hourlyUrl({ start: "2024-01-01", endExclusive: "2024-01-08" }, borough.value),
+    ).replace(/\+/g, " ");
+
+    assert.match(daily, new RegExp(`borough='${borough.value}'`));
+    assert.match(hourly, new RegExp(`borough='${borough.value}'`));
+    assert.match(daily, /complaint_type='Noise - Residential'/);
+    assert.match(hourly, /date_extract_hh\(created_date\) AS hour/);
+  }
+});
+
+test("falls back to Brooklyn for invalid borough values", () => {
+  assert.equal(normalizeBorough("BROOKLYNN"), DEFAULT_BOROUGH);
+  assert.match(whereClause({ start: "2024-01-01", endExclusive: "2024-01-08" }, "BROOKLYNN"), /borough='BROOKLYN'/);
 });
 
 test("fills missing calendar days with zero complaints", () => {
@@ -60,6 +99,20 @@ test("calculates averages per observed calendar day", () => {
   assert.equal(summary.weekendDays, 2);
   assert.equal(summary.weekdayAverage, 5);
   assert.equal(summary.weekendAverage, 10);
+});
+
+test("summary calculations are independent of borough-specific URL construction", () => {
+  const range = { start: "2024-01-01", endExclusive: "2024-01-08" };
+  const rows = [
+    { day: "2024-01-01T00:00:00.000", complaints: "10" },
+    { day: "2024-01-06T00:00:00.000", complaints: "20" },
+  ];
+  const brooklyn = summarize(range, rows, inspectRow, "BROOKLYN");
+  const queens = summarize(range, rows, inspectRow, "QUEENS");
+
+  assert.equal(brooklyn.weekdayAverage, queens.weekdayAverage);
+  assert.equal(brooklyn.weekendAverage, queens.weekendAverage);
+  assert.notEqual(brooklyn.dailyUrl, queens.dailyUrl);
 });
 
 test("calculates percentage difference from weekday average", () => {
@@ -210,4 +263,50 @@ test("validates Phase 3 board provenance data and reproduces normalized ranking"
     ["BK04", "BK05", "BK01", "BK03", "BK16", "BK17"],
   );
   assert.equal(Number(boardRates[0].complaintsPer1000Households.toFixed(3)), 30.643);
+});
+
+test("request tracker prevents stale response application", () => {
+  const tracker = createRequestTracker();
+  const first = tracker.next();
+  const second = tracker.next();
+
+  assert.equal(tracker.isCurrent(first), false);
+  assert.equal(tracker.isCurrent(second), true);
+});
+
+test("formats hours for selected-borough insight text", () => {
+  assert.equal(hourLabel(0), "12 AM");
+  assert.equal(hourLabel(11), "11 AM");
+  assert.equal(hourLabel(12), "12 PM");
+  assert.equal(hourLabel(22), "10 PM");
+});
+
+test("formats selected borough possessives for insight text", () => {
+  assert.equal(possessiveLabel("Brooklyn"), "Brooklyn's");
+  assert.equal(possessiveLabel("Queens"), "Queens'");
+});
+
+test("shows Brooklyn deep dive only for Brooklyn selections", () => {
+  assert.equal(showsBrooklynDeepDive("BROOKLYN"), true);
+  assert.equal(showsBrooklynDeepDive("MANHATTAN"), false);
+  assert.equal(showsBrooklynDeepDive("QUEENS"), false);
+  assert.equal(showsBrooklynDeepDive("BRONX"), false);
+  assert.equal(showsBrooklynDeepDive("STATEN ISLAND"), false);
+});
+
+test("derives largest hourly weekend-weekday gap from live hourly summary shape", () => {
+  const hourlySummary = {
+    hours: [
+      { hour: 0, weekdayAverage: 4, weekendAverage: 8 },
+      { hour: 1, weekdayAverage: 2, weekendAverage: 11 },
+      { hour: 2, weekdayAverage: 6, weekendAverage: 7 },
+    ],
+  };
+
+  assert.deepEqual(largestHourlyGap(hourlySummary), {
+    hour: 1,
+    gap: 9,
+    weekdayAverage: 2,
+    weekendAverage: 11,
+  });
 });
