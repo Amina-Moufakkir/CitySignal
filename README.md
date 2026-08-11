@@ -96,6 +96,18 @@ Interpretation boundary: this describes patterns in 311 complaint reporting. It 
 
 Next research question: Is the Saturday-night `Loud Music/Party` concentration geographically clustered within Brooklyn, or broadly distributed?
 
+### Phase 3 - Normalize and Compare
+
+Raw complaint counts can be misleading because community boards differ in size. CitySignal therefore normalized Saturday-night `Loud Music/Party` complaints using 2024 ACS 5-year estimates aggregated to Brooklyn CDTAs.
+
+The pre-registered hypothesis, that either CB01 or CB04 would fall outside the top five after normalization, was not supported. CB04 remained the highest-ranked board at `30.6` complaints per 1,000 occupied households, while CB01 remained third. A population-based sensitivity check also kept CB04 first and CB01 near the top.
+
+The stress period produced the same broad result: CB04 remained first and CB01 second.
+
+Current insight: CB04's high Saturday-night `Loud Music/Party` complaint volume is not explained simply by having more households; it remains unusually high after normalization.
+
+Boundary: This is a 311 complaint-reporting rate, not a direct measure of actual noise, neighborhood quality, or causation.
+
 ## Run the App
 
 Start a simple local HTTP server from the project directory:
