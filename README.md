@@ -56,6 +56,44 @@ In both tested ranges, the average number of Brooklyn `Noise - Residential` 311 
 
 This supports a difference in 311 residential noise complaint rates for the tested periods. It does not prove that actual noise levels are higher on weekends, and it does not establish a causal explanation for the complaint pattern.
 
+## Analysis Process
+
+CitySignal uses hypothesis-driven exploration rather than asking AI to find arbitrary patterns.
+
+### Phase 1 - Hypothesis-Driven Data Exploration
+
+Initial question:
+Are Brooklyn `Noise - Residential` complaints more frequent per day on weekends than weekdays?
+
+Finding:
+Weekend complaints averaged 77.8% higher per day than weekday complaints in the primary 2024 range.
+
+Stress tests:
+
+- Different date range: +76.3%
+- Manhattan, same 2024 range: +60.9%
+
+Interpretation:
+The weekend complaint pattern is repeatable and not unique to Brooklyn, but the data measures 311 reporting behavior, not actual noise levels or causation.
+
+### Phase 2 - From Finding to Insight
+
+Initial finding: Brooklyn `Noise - Residential` complaints were substantially higher per day on weekends than weekdays.
+
+Time-of-day test: late-night hours (`10 PM-3:59 AM`) accounted for most of the weekend-vs-weekday increase.
+
+Behavioral-evening correction: reassigning `12 AM-3:59 AM` complaints to the previous evening strengthened the weekend-night effect to `+127.3%` in the primary range and `+126.2%` in the stress range.
+
+Day-of-week test: Saturday night was the strongest night in both periods.
+
+Descriptor test: `Loud Music/Party` accounted for `96.4%` of the Saturday-vs-Monday-Thursday excess in the primary range and `93.7%` in the stress range.
+
+Current candidate insight: Brooklyn's Saturday-night spike in residential-noise 311 complaints is overwhelmingly concentrated in `Loud Music/Party` reports.
+
+Interpretation boundary: this describes patterns in 311 complaint reporting. It does not measure actual noise levels or establish why the pattern occurs.
+
+Next research question: Is the Saturday-night `Loud Music/Party` concentration geographically clustered within Brooklyn, or broadly distributed?
+
 ## Run the App
 
 Start a simple local HTTP server from the project directory:
