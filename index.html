@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CitySignal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="intro">
+        <p class="eyebrow">CitySignal</p>
+        <h1>Are Brooklyn residential noise complaints more frequent per day on weekends?</h1>
+        <p>
+          Evidence from NYC Open Data 311 Service Requests, filtered to
+          <strong>borough = BROOKLYN</strong> and
+          <strong>complaint_type = Noise - Residential</strong>.
+        </p>
+      </section>
+
+      <section id="results" class="results" aria-live="polite">
+        <div class="status">Loading NYC Open Data evidence...</div>
+      </section>
+
+      <section class="notes">
+        <h2>Data Notes</h2>
+        <ul>
+          <li>The app requests daily aggregated counts, not the full 311 dataset.</li>
+          <li>Daily response rows are JSON objects shaped like <code>{ day, complaints }</code>; Socrata returns both values as strings.</li>
+          <li>Complete calendar weeks are used so weekday and weekend averages are comparable.</li>
+          <li>Zero-complaint days are filled locally if the API omits them.</li>
+          <li>No NYC Open Data app token is used. Tokens are optional for higher Socrata rate limits, but should not be hardcoded into client-side code.</li>
+          <li>Complaints are reports to 311; they do not measure actual noise levels or causation.</li>
+        </ul>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
