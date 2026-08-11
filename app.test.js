@@ -1,7 +1,15 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { isWeekendDay, normalizeDailyRows, summarize } = require("./app");
+const {
+  PHASE3_BOARD_DATASET,
+  buildBoardRates,
+  isWeekendDay,
+  normalizeDailyRows,
+  normalizeHourlyRows,
+  summarize,
+  summarizeHourly,
+} = require("./app");
 
 const inspectRow = {
   total_records: "0",
@@ -139,4 +147,67 @@ test("rejects malformed aggregate rows and continues with valid rows", () => {
   assert.equal(summary.rejectedRows, 8);
   assert.equal(summary.weekdayTotal, 10);
   assert.equal(summary.weekendTotal, 0);
+});
+
+test("hourly summaries classify days locally and fill missing day-hour cells", () => {
+  const range = { start: "2024-01-01", endExclusive: "2024-01-08" };
+  const rows = [
+    { day: "2024-01-01T00:00:00.000", hour: "0", complaints: "10" },
+    { day: "2024-01-06T00:00:00.000", hour: "0", complaints: "8" },
+    { day: "2024-01-07T00:00:00.000", hour: "0", complaints: "12" },
+    { day: "2024-01-06T00:00:00.000", hour: "23", complaints: "4" },
+  ];
+
+  const summary = summarizeHourly(range, rows);
+
+  assert.equal(summary.weekdayDays, 5);
+  assert.equal(summary.weekendDays, 2);
+  assert.equal(summary.zeroCellsFilled, 7 * 24 - 4);
+  assert.equal(summary.hours[0].weekdayAverage, 2);
+  assert.equal(summary.hours[0].weekendAverage, 10);
+  assert.equal(summary.hours[23].weekdayAverage, 0);
+  assert.equal(summary.hours[23].weekendAverage, 2);
+});
+
+test("rejects malformed hourly aggregate rows", () => {
+  const range = { start: "2024-01-01", endExclusive: "2024-01-08" };
+  const rows = [
+    { day: "2024-01-01T00:00:00.000", hour: "0", complaints: "10" },
+    { day: "2024-01-01T00:00:00.000", hour: "24", complaints: "3" },
+    { day: "2024-01-01T00:00:00.000", hour: "-1", complaints: "3" },
+    { day: "2024-01-01T00:00:00.000", hour: "1.5", complaints: "3" },
+    { day: "not-a-date", hour: "1", complaints: "3" },
+    { day: "2024-01-01T00:00:00.000", complaints: "3" },
+    { day: "2024-01-01T00:00:00.000", hour: "1", complaints: "abc" },
+    { day: "2024-01-09T00:00:00.000", hour: "1", complaints: "3" },
+    null,
+  ];
+
+  const normalized = normalizeHourlyRows(rows, range);
+  const summary = summarizeHourly(range, rows);
+
+  assert.equal(normalized.rejectedRows, 8);
+  assert.equal(summary.rejectedRows, 8);
+  assert.equal(summary.hours[0].weekdayTotal, 10);
+});
+
+test("validates Phase 3 board provenance data and reproduces normalized ranking", () => {
+  const boardIds = new Set(PHASE3_BOARD_DATASET.rows.map((row) => row.board));
+  const boardRates = buildBoardRates();
+
+  assert.equal(PHASE3_BOARD_DATASET.rows.length, 18);
+  assert.equal(boardIds.size, 18);
+  assert.equal(
+    PHASE3_BOARD_DATASET.rows.every((row) => row.occupiedHouseholds > 0),
+    true,
+  );
+  assert.equal(
+    PHASE3_BOARD_DATASET.rows.every((row) => row.saturdayNightComplaints >= 0),
+    true,
+  );
+  assert.deepEqual(
+    boardRates.slice(0, 6).map((row) => row.board),
+    ["BK04", "BK05", "BK01", "BK03", "BK16", "BK17"],
+  );
+  assert.equal(Number(boardRates[0].complaintsPer1000Households.toFixed(3)), 30.643);
 });
