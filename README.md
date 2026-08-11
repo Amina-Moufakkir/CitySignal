@@ -1,12 +1,14 @@
 # CitySignal
 
-CitySignal tests one narrow hypothesis against NYC 311 complaint data before adding any dashboard features.
+CitySignal is a small public-data visualization that explores when and where NYC residential noise complaints reported to 311 are elevated.
+
+Live app: https://amina-moufakkir.github.io/CitySignal/
 
 ## Research Question
 
-Are `Noise - Residential` complaints in Brooklyn more frequent per day on weekends than on weekdays?
+How do `Noise - Residential` complaints reported to NYC 311 differ by day type, hour, and geography?
 
-## Hypothesis
+The project began with a narrower hypothesis:
 
 Brooklyn receives a higher average number of residential noise complaints per day on weekends than on weekdays.
 
@@ -21,24 +23,26 @@ One source record represents one 311 service request. For this analysis, each re
 
 ## API Approach
 
-The app does not fetch the full 311 dataset. It asks Socrata for daily aggregate counts using only the fields needed for this hypothesis:
+The app does not fetch the full 311 dataset. It asks Socrata for aggregate counts using only the fields needed for the current visualizations:
 
 - `created_date`
 - `complaint_type`
 - `borough`
 
-The query filters to:
+Charts 1 and 2 are populated from live NYC Open Data API requests. They filter to:
 
-- `borough = 'BROOKLYN'`
+- selected borough: `BROOKLYN`, `MANHATTAN`, `QUEENS`, `BRONX`, or `STATEN ISLAND`
 - `complaint_type = 'Noise - Residential'`
 
-It groups by calendar day with `date_trunc_ymd(created_date)` and requests rows shaped like:
+The app groups by calendar day and hour, then classifies weekday/weekend locally. Daily aggregate rows are shaped like:
 
 ```json
 { "day": "2024-01-01T00:00:00.000", "complaints": "437" }
 ```
 
 Socrata returns aggregate values as strings, so the app validates and parses them before analysis. Malformed aggregate rows are rejected, counted, and excluded from calculations; they are not silently coerced.
+
+Chart 3 is a Brooklyn-only deep dive. It uses a static validated Phase 3 provenance dataset containing Brooklyn community board IDs, 2024 ACS 5-year occupied-household denominators, and primary-period Saturday-night `Loud Music/Party` complaint counts. The app derives complaints per 1,000 occupied households from those values.
 
 No NYC Open Data app token is used. Tokens are optional for higher Socrata rate limits, but they should not be hardcoded in browser code or committed to Git.
 
@@ -52,7 +56,7 @@ Both ranges are 52 complete Monday-Sunday weeks, giving 260 weekdays and 104 wee
 
 ## Finding
 
-In both tested ranges, the average number of Brooklyn `Noise - Residential` 311 complaints per day is higher on weekends than on weekdays.
+In both tested ranges, the average number of Brooklyn `Noise - Residential` 311 complaints per day is higher on weekends than on weekdays. The live app now lets users compare the same weekday/weekend and hourly pattern across all five boroughs.
 
 This supports a difference in 311 residential noise complaint rates for the tested periods. It does not prove that actual noise levels are higher on weekends, and it does not establish a causal explanation for the complaint pattern.
 
