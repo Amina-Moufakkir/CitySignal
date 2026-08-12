@@ -61,3 +61,91 @@ export const PHASE3_BOARD_DATASET: BoardDataset = {
     { board: "BK18", occupiedHouseholds: 63771, saturdayNightComplaints: 572 },
   ],
 };
+
+/**
+ * Where a figure comes from. Rendered as a sourcing line, in the same voice as
+ * any other citation - this is provenance, not a warning.
+ */
+export type Source = "committed" | "phase-2-3";
+
+export const SOURCE_LABELS: Record<Source, string> = {
+  committed: "Computed from data in this repository",
+  "phase-2-3": "From Phase 2-3 analysis - see Method",
+};
+
+/**
+ * The four pre-registered hypotheses that did not survive.
+ *
+ * Each states what was predicted before the data was examined and what the data
+ * returned. Three were computed in Phase 3 analyses that are not committed here;
+ * the first is derivable from `PHASE3_BOARD_DATASET` and is recomputed at
+ * runtime rather than quoted.
+ */
+export type FailedHypothesis = {
+  id: string;
+  /** What was predicted, stated before looking. */
+  prediction: string;
+  /** What the data returned. */
+  outcome: string;
+  /** Why the prediction was worth making. */
+  rationale: string;
+  /** Headline figure, primary period. Null when the figure is computed live. */
+  primary: string | null;
+  /** Headline figure, stress period. */
+  stress: string | null;
+  source: Source;
+};
+
+export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
+  {
+    id: "concentration",
+    prediction:
+      "If Saturday-night reporting were driven by a few hotspots, the three highest-count community boards would account for at least 40% of it.",
+    outcome:
+      "They accounted for less than that, and the reporting was spread across many boards rather than dominated by three.",
+    rationale:
+      "A concentrated pattern would point somewhere specific. A distributed one does not.",
+    primary: null,
+    stress: "37.7%",
+    source: "committed",
+  },
+  {
+    id: "density",
+    prediction:
+      "If the pattern were an artefact of how many people live close together, residential density would explain most of the variation in normalized complaint rates.",
+    outcome:
+      "Density showed only a weak association with normalized rates, and did not account for BK04.",
+    rationale:
+      "More households per acre means more neighbours within earshot, and more people positioned to file a report.",
+    primary: "weak association",
+    stress: null,
+    source: "phase-2-3",
+  },
+  {
+    id: "nightlife",
+    prediction:
+      "If nightlife drove the pattern, current on-premises alcohol-license exposure would track normalized complaint rates.",
+    outcome:
+      "The relationship was very weak, and did not account for BK04.",
+    rationale:
+      "Bars and venues concentrate late-night activity, and the pattern is a late-night one.",
+    primary: "very weak relationship",
+    stress: null,
+    source: "phase-2-3",
+  },
+  {
+    id: "repeat-locations",
+    prediction:
+      "If a small number of addresses generated the pattern, the ten most-reported tax lots would account for a large share of BK04's complaints.",
+    outcome:
+      "The top ten lots accounted for a small fraction, and most lots that appeared did so on a single Saturday night.",
+    rationale:
+      "A handful of repeatedly-reported buildings would be a different phenomenon from a broad one.",
+    primary: "10.4%",
+    stress: "8.4%",
+    source: "phase-2-3",
+  },
+];
+
+/** Share of valid tax lots appearing on exactly one Saturday night, Phase 3. */
+export const SINGLE_NIGHT_LOCATION_SHARE = "78-81%";
