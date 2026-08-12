@@ -99,13 +99,33 @@ For the current phase, CitySignal should not include:
 - causal explanations
 - AI-generated conclusions
 - generalized dashboard/filter expansion
-- framework migration
+- further framework migration (see Phase 4 Architecture Decision)
 
 ## Architecture
 
-Preserve the current static HTML/CSS/plain-JavaScript architecture.
+CitySignal is a Next.js (App Router) application written in TypeScript, rendered on the server and deployed to Vercel.
 
-Architecture should only change if future approved product requirements demonstrate that the current architecture is inadequate.
+Architecture should only change if future approved product requirements demonstrate that the current architecture is inadequate. The Phase 4 change is recorded below rather than left implicit.
+
+### Phase 4 Architecture Decision
+
+Phases 1-3 specified a static HTML/CSS/plain-JavaScript architecture, and this specification previously instructed that it be preserved unless a future approved product requirement demonstrated it was inadequate. The Phase 4 narrative requirement is that demonstration.
+
+**Decision.** The plain-JavaScript requirement is superseded. CitySignal is now Next.js (App Router) + TypeScript, server-rendered, deployed to Vercel. The `Out Of Scope` entry formerly reading `framework migration` is amended to `further framework migration`: this specific migration is approved, and the prohibition on migrating again stands.
+
+**Reasoning.**
+
+1. *The product changed shape.* Phases 1-3 produced a dashboard: three charts rendered at once into a single container by replacing `innerHTML`, leaving the reader to assemble the argument. Phase 4 is a sequential narrative in which each section makes one claim and later evidence must not appear early. Ordered, independently addressable sections are the requirement; component composition expresses that directly and string-templated `innerHTML` does not.
+
+2. *Server-side data fetching removes a class of defects rather than patching them.* The static build shipped an empty page holding a permanent loading state, was invisible to crawlers and to clients without JavaScript, and issued three unauthenticated Socrata requests per visitor per interaction. Fetching on the server with revalidation ships real content in the initial response, makes the narrative readable without JavaScript, and reduces upstream load to a fixed number of requests per revalidation window regardless of traffic. That last point also removes most of the rate-limit exposure that the static build had no defence against.
+
+3. *Types can enforce product requirements that comments cannot.* An absent comparison is now a variant of a discriminated union rather than `null`. The defect recorded as REVIEW.md B1 - rendering "0.0% higher" when the API returned no data - cannot be reintroduced without a compile error. This is the strongest available guarantee that an interpretation boundary survives future edits.
+
+**What did not change.** The analysis is ported, not rewritten. Date handling remains UTC-only and parsed from components; hour-of-day extraction remains delegated to Socrata's `date_extract_hh`; denominators still come from walking the calendar rather than counting returned rows; row validation still rejects and counts rather than coercing. The product guardrails in `Out Of Scope` and `Current Limitations` are unaffected by this decision and continue to bind.
+
+**What this decision does not authorise.** It does not authorise adopting a component chart library, a scroll-jacking library, an animation library, or a state-management library. It does not authorise expanding the product surface beyond the decision model. It does not weaken any interpretation boundary for the sake of narrative pacing.
+
+**Preserved for reference.** The Phase 1-3 static build is retained unmodified in `legacy/` and on the `main` branch.
 
 ## Source-Of-Truth Boundaries
 
