@@ -5,7 +5,7 @@
 import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DailyCalendar } from "@/components/charts/DailyCalendar";
 import { GuessAwareColumns, GuessComparison, GuessInput } from "./Guess";
-import { Boundary, KeyFigure, Secondary, Section, Unavailable } from "./Section";
+import { Boundary, KeyFigure, PullQuote, Secondary, Section, Unavailable } from "./Section";
 import { formatNumber, formatPercentage, formatSignedPercentage } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
 import { pickAnchors, weekdayName } from "@/lib/series";
@@ -14,17 +14,14 @@ import type { RangeBundle } from "@/lib/data";
 export function HookSection() {
   return (
     <Section id="hook" title="Where is New York loud?" lead>
-      <p className="lede">
-        There is a whole genre of answer to that question. Rankings of the city&rsquo;s noisiest
-        neighbourhoods. Apartment-hunting guides that score a block on how quiet it is. Maps that
-        shade a district darker the more it complains. They are built on one public dataset — NYC
-        311 service requests — and they all make the same move: they treat a count of complaints as
-        a measurement of sound.
+      <p className="lede drop-cap">
+        There is a whole genre of answer. Rankings of the noisiest neighbourhoods. Guides that
+        score a block on how quiet it is. Maps that shade a district darker the more it complains.
+        All built on one public dataset — NYC 311 service requests — and all making the same move:
+        treating a count of complaints as a measurement of sound.
       </p>
-      <p className="lede">
-        It is not one. Nobody in that dataset measured anything. What got recorded is who picked up
-        the phone.
-      </p>
+
+      <PullQuote>Nobody in that dataset measured anything. What got recorded is who picked up the phone.</PullQuote>
       <p>
         Every record here is a New Yorker deciding that something was worth reporting to 311 — and
         then reporting it. That decision runs on more than volume. It runs on whether you think
@@ -94,12 +91,12 @@ export function CorpusSection({ bundle }: { bundle: RangeBundle }) {
         note={
           <>
             <span className="note-block">
-              The quietest day drew {formatNumber(min.complaints)} complaints and the busiest{" "}
+              <b className="note-head">The spread.</b> The quietest day drew {formatNumber(min.complaints)} complaints and the busiest{" "}
               {formatNumber(max.complaints)}, on {max.day}, a {weekdayName(max.day)}. The median day
               drew {formatNumber(median, 1)}.
             </span>
             <span className="note-block">
-              One complication worth putting up front rather than burying. The busiest{" "}
+              <b className="note-head">One complication, up front.</b> The busiest{" "}
               <em>weekday</em> of the year was {maxWeekday.day}, a {weekdayName(maxWeekday.day)}, at{" "}
               {formatNumber(maxWeekday.complaints)} complaints
               {weekdayMultiple === null

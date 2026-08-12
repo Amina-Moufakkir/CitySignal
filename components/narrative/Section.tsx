@@ -84,6 +84,11 @@ export function KeyFigure({ value, children }: { value: string; children: ReactN
   );
 }
 
+/** A line lifted out of the flow, at reading scale rather than display scale. */
+export function PullQuote({ children }: { children: ReactNode }) {
+  return <p className="pull-quote">{children}</p>;
+}
+
 export function Unavailable({ children }: { children: ReactNode }) {
   return (
     <p className="status" role="status">

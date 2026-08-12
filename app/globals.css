@@ -136,7 +136,8 @@ article {
 
 .section > .chart,
 .section > .small-multiples,
-.section > .predictions,
+.section > .ledger,
+.section > .two-columns,
 .section > .queries,
 .section > .explore {
   grid-column: 1 / -1;
@@ -782,63 +783,178 @@ code {
 }
 
 
-/* ---------- Predictions ---------- */
+/* ---------- Prediction ledger ---------- */
 
-.predictions {
-  max-width: 46rem;
-  margin: 2.5rem 0 2rem;
+/*
+ * Four predictions used to be four near-identical prose blocks. As a ledger they
+ * read as a table of record: what was claimed on the left, what came back on the
+ * right, the verdict pulled out so the four can be compared at a glance.
+ */
+.ledger {
+  max-width: 62rem;
+  margin: 2.5rem auto 2rem;
   padding: 0;
   list-style: none;
-  counter-reset: prediction;
 }
 
-.prediction {
-  position: relative;
-  margin-bottom: 2.75rem;
-  padding: 1.75rem 0 0;
+.ledger-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr 1fr;
+  column-gap: 2.5rem;
+  padding: 2rem 0;
   border-top: 1px solid var(--rule);
-  counter-increment: prediction;
 }
 
-.prediction::before {
-  content: counter(prediction);
-  display: block;
-  margin-bottom: 0.9rem;
-  color: var(--accent);
-  font-family: var(--sans);
-  font-size: 0.8rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.prediction-label {
-  margin: 0 0 0.3rem;
+.ledger-index {
+  margin: 0;
   color: var(--muted);
   font-family: var(--sans);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.ledger-cell > * {
+  max-width: none;
+}
+
+.ledger-cell-outcome {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--accent);
+}
+
+.ledger-label {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.prediction-text {
-  margin-bottom: 1.35rem;
-  font-size: 1.06rem;
+.ledger-text {
+  margin: 0 0 0.85rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
 }
 
-.prediction-rationale {
-  margin-top: -0.9rem;
-  margin-bottom: 1.5rem;
+.ledger-aside {
+  margin: 0;
   color: var(--ink-secondary);
-  font-size: 0.98rem;
+  font-size: 0.94rem;
+  line-height: 1.5;
 }
 
-.prediction-figure {
-  max-width: var(--measure);
-  color: var(--ink-secondary);
+.ledger-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0 0 0.9rem;
+}
+
+.ledger-headline-value {
+  color: var(--accent);
   font-family: var(--sans);
+  font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.ledger-headline-caption {
+  color: var(--ink-secondary);
   font-size: 0.92rem;
-  line-height: 1.55;
+  line-height: 1.4;
+}
+
+.ledger-source {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.78rem;
+}
+
+.ledger-evidence {
+  grid-column: 2 / -1;
+  margin-top: 1.5rem;
+}
+
+.ledger-evidence .chart {
+  margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .ledger-row {
+    grid-template-columns: 1fr;
+    row-gap: 1.5rem;
+  }
+
+  .ledger-cell-outcome {
+    padding-left: 1.1rem;
+  }
+
+  .ledger-evidence {
+    grid-column: 1;
+  }
+}
+
+/* ---------- Two-column split ---------- */
+
+.two-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 2.5rem;
+  max-width: 62rem;
+  margin: 1.5rem auto 0;
+}
+
+.column > h3 {
+  margin-top: 0;
+  max-width: none;
+}
+
+.column > .claims {
+  max-width: none;
+}
+
+.column-emphasis {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--accent);
+}
+
+@media (max-width: 52rem) {
+  .column-emphasis {
+    padding-left: 1.1rem;
+  }
+}
+
+/* ---------- Pull quote, drop cap, note subheads ---------- */
+
+.pull-quote {
+  max-width: var(--measure);
+  margin: 2.25rem auto;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--accent);
+  font-size: clamp(1.4rem, 3vw, 1.85rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.drop-cap::first-letter {
+  float: left;
+  margin: 0.32rem 0.55rem 0 0;
+  color: var(--accent);
+  font-size: 3.6em;
+  font-weight: 600;
+  line-height: 0.78;
+}
+
+.note-head {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 /* ---------- Explore ---------- */

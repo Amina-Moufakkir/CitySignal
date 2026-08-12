@@ -84,7 +84,7 @@ export function WhereSection({
 
       <SourceLine>
         <span className="note-block">
-          Everything above this section is queried live. This chart is not: it is a fixed extract
+          <b className="note-head">Provenance.</b> Everything above this section is queried live. This chart is not: it is a fixed extract
           covering {metadata.complaintPeriod}, counting {metadata.descriptor}.
           {metadata.extractedOn
             ? ` Extracted ${metadata.extractedOn}.`
@@ -94,7 +94,7 @@ export function WhereSection({
         </span>
         {shortfall !== null && liveTotal !== null && (
           <span className="note-block">
-            The two do not quite agree, which is worth stating. The live query counts{" "}
+            <b className="note-head">A discrepancy worth naming.</b> The live query counts{" "}
             {formatNumber(liveTotal)} of these complaints across the borough; this extract totals{" "}
             {formatNumber(boardShare.total)}, {formatNumber(Math.abs(shortfall))} fewer —{" "}
             {formatPercentage((Math.abs(shortfall) / liveTotal) * 100)} of the total. A board-level
@@ -206,73 +206,94 @@ export function FailedExplanationsSection({ pageData }: { pageData: PageData }) 
   const verdict = comparedToThreshold(boardShareInterval, threshold);
 
   return (
-    <Section
-      id="failed"
-      title="Then the explanations ran out."
-      wide
-    >
-      <p>
+    <Section id="failed" title="Then the explanations ran out." wide>
+      <p className="lede">
         The pattern is specific enough by now that it ought to have a cause. Four candidates were
-        written down as predictions, each stated before the data was examined and most with a
-        number attached, so they could come back wrong.
+        written down as predictions before the data was examined, most with a number attached, so
+        they could come back wrong. All four did.
       </p>
-      <p className="lede">All four came back wrong. That is the result, not a gap in it.</p>
 
-      <ol className="predictions">
-        {FAILED_HYPOTHESES.map((hypothesis) => (
-          <li key={hypothesis.id} className="prediction">
-            <p className="prediction-label">Predicted</p>
-            <p className="prediction-text">{hypothesis.prediction}</p>
-            <p className="prediction-rationale">{hypothesis.rationale}</p>
+      <ol className="ledger">
+        {FAILED_HYPOTHESES.map((hypothesis, index) => {
+          const headline =
+            hypothesis.id === "concentration" && boardShareInterval.kind === "interval"
+              ? {
+                  value: formatPercentage(boardShare.share),
+                  caption: `where at least ${formatPercentage(threshold, 0)} was predicted`,
+                }
+              : hypothesis.headline;
 
-            <p className="prediction-label">What came back</p>
-            <p className="prediction-text">{hypothesis.outcome}</p>
+          return (
+            <li key={hypothesis.id} className="ledger-row">
+              <p className="ledger-index" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </p>
 
-            {hypothesis.id === "concentration" && (
-              <>
-                <ChartFigure
-                  caption="Top three boards' share, against the threshold predicted in advance"
-                  table={null}
-                >
-                  <IntervalPlot
-                    interval={boardShareInterval}
-                    threshold={threshold}
-                    thresholdLabel={`predicted at least ${formatPercentage(threshold, 0)}`}
-                    label="Share of Saturday-night complaints held by the three highest-count boards"
-                  />
-                </ChartFigure>
-                {boardShareInterval.kind === "interval" && (
-                  <p className="prediction-figure">
-                    {formatPercentage(boardShare.share)} observed, 95% interval{" "}
-                    {formatPercentage(boardShareInterval.lower)} to{" "}
-                    {formatPercentage(boardShareInterval.upper)}
-                    {verdict === "entirely-below"
-                      ? " — entirely below the threshold."
-                      : verdict === "straddles"
-                        ? " — straddling the threshold, so the test does not resolve."
-                        : "."}{" "}
-                    That interval treats every complaint as independent. They are not: reports
-                    cluster within a night and within an address, which makes the real interval
-                    wider than this one. The night-level counts needed to compute it are not in
-                    this repository.
+              <div className="ledger-cell">
+                <p className="ledger-label">Predicted</p>
+                <p className="ledger-text">{hypothesis.prediction}</p>
+                <p className="ledger-aside">{hypothesis.rationale}</p>
+              </div>
+
+              <div className="ledger-cell ledger-cell-outcome">
+                <p className="ledger-label">What came back</p>
+                {headline && (
+                  <p className="ledger-headline">
+                    <span className="ledger-headline-value">{headline.value}</span>
+                    <span className="ledger-headline-caption">{headline.caption}</span>
                   </p>
                 )}
-              </>
-            )}
+                <p className="ledger-text">{hypothesis.outcome}</p>
+                <p className="ledger-source">{SOURCE_LABELS[hypothesis.source]}</p>
+              </div>
 
-            {hypothesis.measurement !== null && (
-              <p className="prediction-figure">{hypothesis.measurement}</p>
-            )}
-
-            <SourceLine>{SOURCE_LABELS[hypothesis.source]}</SourceLine>
-          </li>
-        ))}
+              {hypothesis.id === "concentration" && (
+                <div className="ledger-evidence">
+                  <ChartFigure
+                    caption="Top three boards' share, against the threshold predicted in advance"
+                    table={null}
+                    note={
+                      boardShareInterval.kind === "interval" ? (
+                        <>
+                          <span className="note-block">
+                            <b className="note-head">The interval.</b>{" "}
+                            {formatPercentage(boardShare.share)} observed,{" "}
+                            {formatPercentage(boardShareInterval.lower)} to{" "}
+                            {formatPercentage(boardShareInterval.upper)} at 95%
+                            {verdict === "entirely-below"
+                              ? " — entirely below the threshold."
+                              : verdict === "straddles"
+                                ? " — straddling it, so the test does not resolve."
+                                : "."}
+                          </span>
+                          <span className="note-block">
+                            <b className="note-head">Why it is too narrow.</b> It treats every
+                            complaint as independent, and they are not: reports cluster within a
+                            night and within an address. The night-level counts needed to compute
+                            the wider, correct interval are not in this repository.
+                          </span>
+                        </>
+                      ) : null
+                    }
+                  >
+                    <IntervalPlot
+                      interval={boardShareInterval}
+                      threshold={threshold}
+                      thresholdLabel={`predicted at least ${formatPercentage(threshold, 0)}`}
+                      label="Share of Saturday-night complaints held by the three highest-count boards"
+                    />
+                  </ChartFigure>
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ol>
 
       <p>
-        Four plausible mechanisms, four predictions, none supported. What survives is a pattern
-        that is consistent, specific in time, spread across hundreds of addresses, and unexplained
-        by the things that would most obviously explain it.
+        Four plausible mechanisms, none supported. What survives is a pattern that is consistent,
+        specific in time, spread across hundreds of addresses, and unexplained by the things that
+        would most obviously explain it.
       </p>
 
       <Boundary>

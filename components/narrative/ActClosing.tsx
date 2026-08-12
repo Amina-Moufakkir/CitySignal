@@ -34,6 +34,8 @@ export function BoundariesSection({ pageData }: { pageData: PageData }) {
         worth being exact about which.
       </p>
 
+      <div className="two-columns">
+        <div className="column">
       <h3>What it establishes</h3>
       <ul className="claims">
         <li>
@@ -49,7 +51,9 @@ export function BoundariesSection({ pageData }: { pageData: PageData }) {
           Four pre-registered explanations for that geographic difference were not supported.
         </li>
       </ul>
+        </div>
 
+        <div className="column column-emphasis">
       <h3>What it does not establish</h3>
       <ul className="claims">
         <li>
@@ -75,6 +79,8 @@ export function BoundariesSection({ pageData }: { pageData: PageData }) {
           board that reports more.
         </li>
       </ul>
+        </div>
+      </div>
 
       <Boundary>
         One more, about the product rather than the data: CitySignal assumes its reader is someone

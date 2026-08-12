@@ -95,6 +95,12 @@ export type FailedHypothesis = {
    * dangling sentences under "What came back".
    */
   measurement: string | null;
+  /**
+   * The verdict at a glance, for the ledger. A word where the result was
+   * qualitative and a figure where it was not - two of the four had a number.
+   * Null when the section computes it live.
+   */
+  headline: { value: string; caption: string } | null;
   source: Source;
 };
 
@@ -108,6 +114,7 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
     rationale:
       "A concentrated pattern would point somewhere specific. A distributed one does not.",
     measurement: null,
+    headline: null,
     source: "committed",
   },
   {
@@ -120,6 +127,7 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "More households per acre means more neighbours within earshot, and more people positioned to file a report.",
     measurement:
       "The association between residential density and normalized complaint rate was weak, and it left BK04's position unexplained.",
+    headline: { value: "Weak", caption: "association, and BK04 still unexplained" },
     source: "phase-2-3",
   },
   {
@@ -132,6 +140,7 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "Bars and venues concentrate late-night activity, and the pattern is a late-night one.",
     measurement:
       "The relationship between current on-premises licence exposure and normalized complaint rate was very weak, and it left BK04's position unexplained.",
+    headline: { value: "Very weak", caption: "relationship, and BK04 still unexplained" },
     source: "phase-2-3",
   },
   {
@@ -144,6 +153,7 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "A handful of repeatedly-reported buildings would be a different phenomenon from a broad one.",
     measurement:
       "The ten most-reported tax lots accounted for 10.4% of BK04's complaints in the primary period and 8.4% in the stress period. Roughly 78-81% of the lots that appeared at all did so on exactly one Saturday night.",
+    headline: { value: "10.4%", caption: "of BK04's complaints in its ten most-reported lots" },
     source: "phase-2-3",
   },
 ];
