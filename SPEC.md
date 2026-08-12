@@ -151,7 +151,7 @@ Phases 1-3 specified a static HTML/CSS/plain-JavaScript architecture, and this s
 
 **What this decision does not authorise.** It does not authorise adopting a component chart library, a scroll-jacking library, an animation library, or a state-management library. It does not authorise expanding the product surface beyond the decision model. It does not weaken any interpretation boundary for the sake of narrative pacing.
 
-**Preserved for reference.** The Phase 1-3 static build is retained unmodified in `legacy/` and on the `main` branch.
+**Preserved for reference.** The Phase 1-3 static build is retained unmodified in `legacy/`, and on the `mvp` branch, which is frozen at `de64d69` — the last commit before this migration — and is published by GitHub Pages so the superseded version stays readable as a running site rather than only as source. `mvp` accepts no changes: preserving a version that continues to drift preserves nothing.
 
 ## Source-Of-Truth Boundaries
 

@@ -16,8 +16,14 @@ import type { PageData } from "@/lib/data";
 const REPO_URL = "https://github.com/Amina-Moufakkir/CitySignal";
 const DATASET_PAGE =
   "https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9";
-/** Points at the branch this is deployed from; update when it merges. */
-const METHOD_URL = "https://github.com/Amina-Moufakkir/CitySignal/blob/narrative/METHOD.md";
+/** Points at the branch this is deployed from, which is now main. */
+const METHOD_URL = "https://github.com/Amina-Moufakkir/CitySignal/blob/main/METHOD.md";
+/**
+ * The Phase 1-3 static build, still standing at its own URL. Served by GitHub
+ * Pages from the `mvp` branch, which is frozen at the last commit before the
+ * Next.js migration.
+ */
+const ORIGINAL_URL = "https://amina-moufakkir.github.io/CitySignal/";
 
 export function BoundariesSection({ pageData }: { pageData: PageData }) {
   const total =
@@ -115,6 +121,10 @@ export function ExploreSection({ boroughs }: { boroughs: ExploreBorough[] }) {
  *
  * The attribution stays because a piece built on someone else's public data
  * should say so on its face, not one link away.
+ *
+ * The second line points at the version this one replaced. It is kept running at
+ * its own URL rather than deleted, so the before and after can be read against
+ * each other; saying so here is part of showing the work.
  */
 export function Colophon({ pageData }: { pageData: PageData }) {
   return (
@@ -125,6 +135,10 @@ export function Colophon({ pageData }: { pageData: PageData }) {
         {formatTimestamp(pageData.fetchedAt)} and refreshed at most every{" "}
         {formatNumber(REVALIDATE_SECONDS / 3600)} hours. Full method, queries and figure
         provenance: <a href={METHOD_URL}>METHOD.md</a>. Code: <a href={REPO_URL}>GitHub</a>.
+      </p>
+      <p>
+        This piece replaced an earlier static version, which is preserved unchanged at{" "}
+        <a href={ORIGINAL_URL}>the original CitySignal</a>.
       </p>
     </footer>
   );

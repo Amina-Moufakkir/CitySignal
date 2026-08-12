@@ -1,11 +1,35 @@
 # CitySignal
 
-A narrative data piece about when and where New Yorkers report residential noise
-to 311 — and why that is not the same as where the city is loud.
+**A narrative data piece about when and where New Yorkers report residential
+noise to 311 — and why that is not the same as where the city is loud.**
+
+**Read it: [citysignal-two.vercel.app](https://citysignal-two.vercel.app)**
 
 Built on live NYC Open Data. Every figure in the piece is either recomputed from
 the API on each refresh or derived from data committed to this repository, and
 `METHOD.md` says which for every number.
+
+The argument is that a count of complaints is a record of who picked up the
+phone, not a measurement of sound — and that most published readings of this
+dataset quietly treat the two as the same thing. The piece follows one pattern in
+Brooklyn's 311 data as far as it will honestly go, and then stops where the
+evidence does, which is earlier than a ranking would.
+
+## Two live versions
+
+The project is deliberately published twice, so the two can be read against each
+other.
+
+| | What it is | Served from |
+| --- | --- | --- |
+| [citysignal-two.vercel.app](https://citysignal-two.vercel.app) | The current piece. Next.js, server-rendered, fourteen sections. | Vercel, from `main` |
+| [amina-moufakkir.github.io/CitySignal](https://amina-moufakkir.github.io/CitySignal/) | The original Phase 1–3 build. Static HTML, CSS and plain JavaScript, three charts in one container. | GitHub Pages, from `mvp` |
+
+`mvp` is frozen at `de64d69`, the last commit before the Next.js migration, and
+takes no backports or fixes — a preserved version that drifts is not preserved.
+Its only change from that commit is a banner saying what it is and a canonical
+link pointing here. `SPEC.md` records why the architecture changed and what that
+decision did and did not authorise.
 
 ## Reading it
 
@@ -76,7 +100,7 @@ components/ui/       reading nav, theme toggle, scroll reveal
 lib/                 analysis, queries, uncertainty, config, static data
 METHOD.md            every query and every figure's provenance
 scripts/             live verification
-legacy/              the Phase 1-3 static build, frozen
+legacy/              the Phase 1-3 static build, readable without switching branch
 ```
 
 ### Things that are load-bearing
@@ -229,6 +253,17 @@ night-level data needed to compute the correct, wider interval is not committed.
 method, and this history. `AGENTS.md` tells coding agents how to work here and
 defers to `SPEC.md`. `METHOD.md` owns figure provenance. Implementation
 details live in code and tests.
+
+### Branches
+
+- **`main`** — the narrative piece. Deployed to Vercel. This is the project.
+- **`mvp`** — the Phase 1–3 static build, frozen at `de64d69`. Served by GitHub
+  Pages. Takes no changes.
+
+The old build therefore exists in three places, which is deliberate rather than
+untidy, because each is reachable a different way: `mvp` runs it, `legacy/` makes
+it readable in a checkout of `main` without switching branch, and the history
+before `40948f2` has it at the repository root where it was originally written.
 
 ## Licence
 
