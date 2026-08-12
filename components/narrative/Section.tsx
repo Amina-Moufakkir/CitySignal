@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { nextSection, sectionMeta, type SectionId } from "@/lib/sections";
+import { SECTIONS, nextSection, sectionMeta, type SectionId } from "@/lib/sections";
 
 /**
  * One section, one claim.
@@ -26,6 +26,7 @@ export function Section({
 }) {
   const meta = sectionMeta(id);
   const next = nextSection(id);
+  const index = SECTIONS.findIndex((section) => section.id === id) + 1;
   const Heading = lead ? "h1" : "h2";
   const className = [
     "section",
@@ -37,7 +38,10 @@ export function Section({
 
   return (
     <section id={id} aria-labelledby={`${id}-title`} className={className}>
-      <p className="eyebrow">{meta.eyebrow}</p>
+      <p className="eyebrow">
+        <span className="eyebrow-index">{String(index).padStart(2, "0")}</span>
+        <span>{meta.eyebrow}</span>
+      </p>
       <Heading id={`${id}-title`}>{title}</Heading>
       {children}
       {next && (

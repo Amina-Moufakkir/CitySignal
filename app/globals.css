@@ -15,6 +15,9 @@
 
   --surface: #fbfaf7;
   --surface-raised: #ffffff;
+  /* The ground a chart sits on. Validated against the marks that go on it:
+     accent 4.16:1, de-emphasis 3.43:1, ink 14.28:1. */
+  --surface-band: #eae6dc;
   --ink: #16181a;
   --ink-secondary: #464b50;
   --muted: #7d7a74;
@@ -31,6 +34,7 @@
   --rail-width: 16rem;
 
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--font-display), var(--sans);
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
 }
 
@@ -51,6 +55,7 @@
 
     --surface: #121417;
     --surface-raised: #191c20;
+    --surface-band: #191d22;
     --ink: #eef1f4;
     --ink-secondary: #b9c0c7;
     --muted: #9aa3ad;
@@ -68,6 +73,7 @@
 
   --surface: #121417;
   --surface-raised: #191c20;
+  --surface-band: #191d22;
   --ink: #eef1f4;
   --ink-secondary: #b9c0c7;
   --muted: #9aa3ad;
@@ -154,24 +160,29 @@ article {
 /* ---------- Typography ---------- */
 
 h1,
-h2,
+h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
 h3 {
   font-weight: 600;
-  letter-spacing: -0.015em;
   text-wrap: balance;
 }
 
 h1 {
   margin: 0 0 1.5rem;
-  font-size: clamp(2.4rem, 7vw, 4rem);
-  line-height: 1.04;
+  font-size: clamp(2.7rem, 8vw, 4.6rem);
+  line-height: 0.96;
 }
 
 h2 {
   max-width: var(--measure);
   margin: 0 0 1.25rem;
-  font-size: clamp(1.65rem, 3.6vw, 2.3rem);
-  line-height: 1.14;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.06;
 }
 
 h3 {
@@ -236,7 +247,7 @@ code {
 
 .key-figure-value {
   color: var(--accent);
-  font-family: var(--sans);
+  font-family: var(--display);
   font-size: clamp(3rem, 9vw, 5.5rem);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -431,9 +442,14 @@ code {
 }
 
 .eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
   margin: 0 0 0.9rem;
+  padding-top: 0.55rem;
+  border-top: 2px solid var(--ink);
   color: var(--accent);
-  font-family: var(--sans);
+  font-family: var(--display);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.13em;
@@ -856,7 +872,7 @@ code {
 
 .ledger-headline-value {
   color: var(--accent);
-  font-family: var(--sans);
+  font-family: var(--display);
   font-size: clamp(1.9rem, 4.5vw, 2.7rem);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -1168,4 +1184,48 @@ code {
   font-family: var(--sans);
   font-size: 0.82rem;
   line-height: 1.6;
+}
+
+
+/* ---------- Municipal record ---------- */
+
+/*
+ * The chart sits on its own ground. Bands alternate against the page so a
+ * chart-led section reads as a plate rather than as an illustration dropped into
+ * prose. The band tone is validated against every mark that lands on it.
+ */
+.section-tall > .chart {
+  padding: 2.5rem 1.75rem 2rem;
+  background: var(--surface-band);
+}
+
+/* A docket number, set like a form field. */
+.eyebrow-index {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.eyebrow-index::after {
+  content: " /";
+}
+
+/*
+ * Grain. A film over the whole page at 3%, which reads as paper and asphalt
+ * rather than as texture. Removed where it would work against the reader.
+ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  body::after {
+    display: none;
+  }
 }

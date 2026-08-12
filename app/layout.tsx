@@ -1,6 +1,22 @@
 import type { Metadata } from "next";
+import { Archivo } from "next/font/google";
 
 import "./globals.css";
+
+/**
+ * A grotesque for display against the serif for body. The tension between the
+ * two is the point: 311 is municipal paperwork, and the piece should look like
+ * the record it is made of rather than like a literary essay about it.
+ *
+ * Self-hosted at build time by next/font, so no runtime request to a third party
+ * and no layout shift. It degrades to the system sans stack if it fails.
+ */
+const display = Archivo({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 const TITLE = "Where is New York loud? | CitySignal";
 const DESCRIPTION =
@@ -68,7 +84,7 @@ const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("citysignal-the
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // The script above sets an attribute on <html> before React hydrates.
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={display.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
