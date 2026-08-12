@@ -132,7 +132,19 @@ export function roundedBarPath(
   return `M${x},${y} L${x + width - r},${y} Q${x + width},${y} ${x + width},${y + r} L${x + width},${y + height - r} Q${x + width},${y + height} ${x + width - r},${y + height} L${x},${y + height} Z`;
 }
 
-/** Rounds an axis maximum up to a clean number so ticks read 0 / 200 / 400. */
+/**
+ * Rounds an axis maximum up to a clean number so ticks read 0 / 200 / 400.
+ *
+ * The step ladder is deliberately fine. A coarse 1/2/5/10 ladder rounds 656 up
+ * to 1,000 and 44.7 up to 100, which leaves the data sitting in the bottom half
+ * of the plot and makes every pattern look flatter than it is. These steps put
+ * the axis just above the data instead.
+ *
+ * Callers pass the raw maximum: the rounding is the headroom, so multiplying by
+ * a padding factor first only re-introduces the problem.
+ */
+const STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 10];
+
 export function niceMax(value: number): number {
   if (value <= 0) {
     return 1;
@@ -140,7 +152,7 @@ export function niceMax(value: number): number {
 
   const magnitude = 10 ** Math.floor(Math.log10(value));
   const normalized = value / magnitude;
-  const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  const step = STEPS.find((candidate) => normalized <= candidate) ?? 10;
 
   return step * magnitude;
 }

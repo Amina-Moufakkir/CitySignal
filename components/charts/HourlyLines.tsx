@@ -34,7 +34,7 @@ export function HourlyLines({
   const plotWidth = WIDTH - MARGIN.left - MARGIN.right;
   const plotHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
   const max = niceMax(
-    Math.max(...hours.flatMap((row) => [row.weekdayAverage, row.weekendAverage])) * 1.15,
+    Math.max(...hours.flatMap((row) => [row.weekdayAverage, row.weekendAverage])),
   );
 
   const x = scaleLinear().domain([0, 24]).range([MARGIN.left, WIDTH - MARGIN.right]);

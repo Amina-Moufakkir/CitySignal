@@ -19,7 +19,7 @@ const MARGIN = { top: 12, right: 70, bottom: 52, left: 92 };
 export function NightBars({ summary, peak }: { summary: NightSummary; peak: PeakNight }) {
   const rows = summary.nights;
   const height = MARGIN.top + MARGIN.bottom + rows.length * ROW_HEIGHT;
-  const max = niceMax(Math.max(...rows.map((row) => row.average)) * 1.1);
+  const max = niceMax(Math.max(...rows.map((row) => row.average)));
   const x = scaleLinear().domain([0, max]).range([MARGIN.left, WIDTH - MARGIN.right]);
   const peakWeekday = peak.kind === "peak" ? peak.night.weekday : null;
   const barHeight = CHART.maxBarThickness - CHART.surfaceGap;

@@ -47,6 +47,7 @@ import {
   type Failure,
 } from "./socrata";
 import { bootstrapPercentageDifference, bootstrapTopShare, type IntervalResult } from "./uncertainty";
+import { buildDailySeries, type DailySeries } from "./series";
 
 export type Loaded<T> = { status: "ok"; value: T } | { status: "failed"; failure: Failure };
 
@@ -54,6 +55,11 @@ export type RangeBundle = {
   range: Range;
   borough: Borough;
   daily: Loaded<DaySummary>;
+  /**
+   * The same validated rows in calendar order, for the corpus chart. Derived
+   * from the daily fetch; it costs no extra request.
+   */
+  dailySeries: DailySeries | null;
   /** Interval around the weekend-versus-weekday percentage difference. */
   dailyInterval: IntervalResult;
   hourly: Loaded<HourlySummary>;
@@ -113,7 +119,9 @@ async function loadRange(range: Range, borough: Borough): Promise<RangeBundle> {
       ? bootstrapPercentageDifference(daily.value.weekdayCounts, daily.value.weekendCounts)
       : { kind: "unavailable" };
 
-  return { range, borough, daily, dailyInterval, hourly, nights };
+  const dailySeries = dailyResult.ok ? buildDailySeries(range, dailyResult.rows) : null;
+
+  return { range, borough, daily, dailySeries, dailyInterval, hourly, nights };
 }
 
 async function loadDescriptors(

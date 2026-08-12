@@ -22,7 +22,7 @@ const LABELLED = 3;
 
 export function BoardBars({ boards, highlight }: { boards: BoardRate[]; highlight: string }) {
   const height = MARGIN.top + MARGIN.bottom + boards.length * ROW_HEIGHT;
-  const max = niceMax(boards[0].complaintsPer1000Households * 1.1);
+  const max = niceMax(boards[0].complaintsPer1000Households);
   const x = scaleLinear().domain([0, max]).range([MARGIN.left, WIDTH - MARGIN.right]);
   const barHeight = Math.min(CHART.maxBarThickness, ROW_HEIGHT - CHART.surfaceGap * 3);
   const top = boards[0];

@@ -3,10 +3,12 @@
  */
 
 import { ChartFigure } from "@/components/charts/ChartFrame";
+import { DailyCalendar } from "@/components/charts/DailyCalendar";
 import { GuessAwareColumns, GuessComparison, GuessInput } from "./Guess";
 import { Boundary, Section, Unavailable } from "./Section";
-import { formatNumber, formatSignedPercentage } from "@/lib/format";
+import { formatNumber, formatPercentage, formatSignedPercentage } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
+import { pickAnchors, weekdayName } from "@/lib/series";
 import type { RangeBundle } from "@/lib/data";
 
 export function HookSection() {
@@ -42,6 +44,115 @@ export function GuessSection() {
         take the average for a weekend day. How much bigger is the second number?
       </p>
       <GuessInput />
+    </Section>
+  );
+}
+
+/**
+ * The corpus, before any of it is averaged. Same rows as the reveal, no query.
+ */
+export function CorpusSection({ bundle }: { bundle: RangeBundle }) {
+  const { dailySeries, daily, range } = bundle;
+
+  if (dailySeries === null) {
+    return (
+      <Section id="corpus" eyebrow="The raw material" title="Every day of the year">
+        <Unavailable>
+          {daily.status === "failed" ? describeFailure(daily.failure) : "Not available."}
+        </Unavailable>
+      </Section>
+    );
+  }
+
+  const anchors = pickAnchors(dailySeries);
+  const { max, maxWeekday, min, median, weekdayMean } = dailySeries;
+  const weekdayMultiple = weekdayMean === 0 ? null : maxWeekday.complaints / weekdayMean;
+
+  return (
+    <Section id="corpus" eyebrow="The raw material" title="Every day of the year" wide>
+      <p className="lede">
+        Each bar is one day in Brooklyn in {range.start.slice(0, 4)}. Nothing is averaged, sorted or
+        filtered — this is all {formatNumber(dailySeries.days.length)} days, in order.
+      </p>
+
+      <ChartFigure
+        caption={`Residential noise complaints per day, ${range.display}`}
+        table={null}
+        note={
+          <>
+            <span className="note-block">
+              The quietest day drew {formatNumber(min.complaints)} complaints and the busiest{" "}
+              {formatNumber(max.complaints)}, on {max.day}, a {weekdayName(max.day)}. The median day
+              drew {formatNumber(median, 1)}.
+            </span>
+            <span className="note-block">
+              One complication worth putting up front rather than burying. The busiest{" "}
+              <em>weekday</em> of the year was {maxWeekday.day}, a {weekdayName(maxWeekday.day)}, at{" "}
+              {formatNumber(maxWeekday.complaints)} complaints
+              {weekdayMultiple === null
+                ? ""
+                : ` — ${formatNumber(weekdayMultiple, 1)} times the weekday average`}
+              . New Year&rsquo;s Day is a {weekdayName(`${range.start.slice(0, 4)}-01-01`)} too. Both
+              are public holidays that behave like weekends, and both are counted as weekdays. The
+              gap this piece is about is therefore measured against a baseline that already contains
+              the year&rsquo;s largest non-weekend surges, which makes it a conservative one.
+            </span>
+          </>
+        }
+      >
+        <DailyCalendar
+          series={dailySeries}
+          anchors={anchors}
+          label={`Brooklyn daily complaints, ${range.display}`}
+        />
+      </ChartFigure>
+    </Section>
+  );
+}
+
+/**
+ * The same chart, one prop different. The statistic the next section computes is
+ * already visible here as a stripe.
+ */
+export function RhythmSection({ bundle }: { bundle: RangeBundle }) {
+  const { dailySeries, range } = bundle;
+
+  if (dailySeries === null) {
+    return null;
+  }
+
+  const ratio =
+    dailySeries.weekdayMean === 0
+      ? null
+      : ((dailySeries.weekendMean - dailySeries.weekdayMean) / dailySeries.weekdayMean) * 100;
+
+  return (
+    <Section id="rhythm" eyebrow="The same chart" title="Now colour the weekends" wide>
+      <p className="lede">
+        Nothing has been recalculated. The same {formatNumber(dailySeries.days.length)} bars, with
+        Saturdays and Sundays picked out.
+      </p>
+
+      <ChartFigure
+        caption={`Residential noise complaints per day, weekends marked, ${range.display}`}
+        table={null}
+        note={
+          <>
+            The pattern is a rhythm rather than a trend: it does not build over the year, it repeats
+            every week.
+            {ratio === null
+              ? ""
+              : ` Averaged out, a weekend day draws ${formatPercentage(Math.abs(ratio))} ${ratio >= 0 ? "more" : "fewer"} complaints than a weekday — which is the next section, stated precisely.`}
+          </>
+        }
+      >
+        <DailyCalendar
+          series={dailySeries}
+          anchors={[]}
+          colorByDayType
+          label={`Brooklyn daily complaints by day type, ${range.display}`}
+        />
+      </ChartFigure>
     </Section>
   );
 }

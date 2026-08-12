@@ -49,7 +49,7 @@ export function DayTypeColumns({
   const height = compact ? 220 : HEIGHT;
   const margin = compact ? { ...MARGIN, top: 28, bottom: 44 } : MARGIN;
   const plotWidth = WIDTH - margin.left - margin.right;
-  const max = niceMax(Math.max(weekdayAverage, weekendAverage, guessLevel ?? 0) * 1.12);
+  const max = niceMax(Math.max(weekdayAverage, weekendAverage, guessLevel ?? 0));
   const y = scaleLinear().domain([0, max]).range([height - margin.bottom, margin.top]);
 
   const bars = [

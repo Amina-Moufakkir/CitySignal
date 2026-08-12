@@ -7,7 +7,13 @@
  */
 
 import { GuessProvider } from "@/components/narrative/Guess";
-import { GuessSection, HookSection, RevealSection } from "@/components/narrative/ActOpening";
+import {
+  CorpusSection,
+  GuessSection,
+  HookSection,
+  RevealSection,
+  RhythmSection,
+} from "@/components/narrative/ActOpening";
 import {
   DescriptorSection,
   NightsSection,
@@ -73,6 +79,8 @@ export default async function Page() {
         <GuessProvider>
           <Reveal><HookSection /></Reveal>
           <Reveal><GuessSection /></Reveal>
+          <Reveal><CorpusSection bundle={data.brooklynPrimary} /></Reveal>
+          <Reveal><RhythmSection bundle={data.brooklynPrimary} /></Reveal>
           <Reveal><RevealSection bundle={data.brooklynPrimary} /></Reveal>
         </GuessProvider>
 

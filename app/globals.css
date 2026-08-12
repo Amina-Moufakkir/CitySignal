@@ -755,3 +755,52 @@ code {
     transform: none !important;
   }
 }
+
+/* ---------- Corpus calendar ---------- */
+
+/* 364 marks: the 2px surface gap between adjacent bars is a rule for a handful
+   of readable bars, not for a comb. Density is the point here, and precision
+   lives in the summary table. */
+.day-bar {
+  fill: var(--de-emphasis);
+}
+
+.day-bar-accent {
+  fill: var(--accent);
+}
+
+.anchor-leader {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.anchor-dot {
+  fill: var(--ink-secondary);
+}
+
+.anchor-label {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.anchor-value {
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--muted);
+}
+
+.chart-svg-full {
+  max-width: 100%;
+}
+
+/* Secondary notes below a chart, when there is more than one paragraph of them. */
+.note-block {
+  display: block;
+}
+
+.note-block + .note-block {
+  margin-top: 0.85rem;
+}

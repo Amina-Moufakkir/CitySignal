@@ -57,7 +57,7 @@ export function DescriptorDumbbell({
     .sort((a, b) => b.peak - a.peak);
 
   const height = MARGIN.top + MARGIN.bottom + rows.length * ROW_HEIGHT;
-  const max = niceMax(Math.max(...rows.map((row) => Math.max(row.peak, row.baseline))) * 1.12);
+  const max = niceMax(Math.max(...rows.map((row) => Math.max(row.peak, row.baseline))));
   const x = scaleLinear().domain([0, max]).range([MARGIN.left, WIDTH - MARGIN.right]);
 
   return (
