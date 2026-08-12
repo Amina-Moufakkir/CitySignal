@@ -21,7 +21,7 @@ import { line as d3Line, curveMonotoneX } from "d3-shape";
 
 import { formatNumber, hourLabel } from "@/lib/format";
 import { NIGHT_END_HOUR, NIGHT_START_HOUR, type HourRow, type HourlyGap } from "@/lib/analysis";
-import { ChartTable, niceMax, CHART } from "./ChartFrame";
+import { ChartTable, niceMax, CHART, chartStyle } from "./ChartFrame";
 
 const WIDTH = 860;
 const HEIGHT = 400;
@@ -74,7 +74,7 @@ export function HourlyLines({
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
         aria-label={
@@ -110,10 +110,17 @@ export function HourlyLines({
 
         <line className="axis" x1={MARGIN.left} y1={y(0)} x2={WIDTH - MARGIN.right} y2={y(0)} />
 
-        {ticks.map((position) => (
+        {/*
+          Every other hour label is marked droppable. The full set fits while the
+          chart is near full size; on a phone the labels are scaled up to stay
+          readable and there is no longer room for all of them, so the stylesheet
+          hides the alternates rather than letting them run together. Dropping
+          every second one keeps the axis evenly spaced and keeps both ends.
+        */}
+        {ticks.map((position, index) => (
           <text
             key={position}
-            className="tick"
+            className={index % 2 === 1 && index < ticks.length - 1 ? "tick tick-alternate" : "tick"}
             x={x(position)}
             y={y(0) + 22}
             textAnchor="middle"
@@ -125,27 +132,45 @@ export function HourlyLines({
         <path className="line-muted" d={path("weekdayAverage")} />
         <path className="line-accent" d={path("weekendAverage")} />
 
-        {/* Direct end labels rather than a legend box: identity rides the mark. */}
-        <g>
-          <circle
-            className="marker-accent"
-            cx={centre(last.hour)}
-            cy={y(last.weekendAverage)}
-            r={CHART.markerRadius}
-          />
-          <text className="series-label" x={centre(last.hour) + 12} y={y(last.weekendAverage) + 4}>
-            weekend
-          </text>
-          <circle
-            className="marker-muted"
-            cx={centre(last.hour)}
-            cy={y(last.weekdayAverage)}
-            r={CHART.markerRadius}
-          />
-          <text className="series-label" x={centre(last.hour) + 12} y={y(last.weekdayAverage) + 4}>
-            weekday
-          </text>
-        </g>
+        {/*
+          Direct end labels rather than a legend box: identity rides the mark.
+
+          The two series converge by the end of the day, so at the last hour the
+          labels sit almost on top of each other and collide outright once chart
+          text is scaled up on a narrow screen. Each is nudged clear of its own
+          marker, in `em` so the nudge grows with the type rather than needing a
+          value per breakpoint. Which one goes up is read off the marks - the
+          higher series at the last hour takes the upper label - so nothing here
+          assumes weekends run above weekdays.
+        */}
+        {(() => {
+          const weekendY = y(last.weekendAverage);
+          const weekdayY = y(last.weekdayAverage);
+          const weekendOnTop = weekendY <= weekdayY;
+
+          return (
+            <g>
+              <circle className="marker-accent" cx={centre(last.hour)} cy={weekendY} r={CHART.markerRadius} />
+              <text
+                className="series-label"
+                x={centre(last.hour) + 12}
+                y={weekendY}
+                dy={weekendOnTop ? "-0.35em" : "1.15em"}
+              >
+                weekend
+              </text>
+              <circle className="marker-muted" cx={centre(last.hour)} cy={weekdayY} r={CHART.markerRadius} />
+              <text
+                className="series-label"
+                x={centre(last.hour) + 12}
+                y={weekdayY}
+                dy={weekendOnTop ? "1.15em" : "-0.35em"}
+              >
+                weekday
+              </text>
+            </g>
+          );
+        })()}
 
         {peak.kind === "gap" &&
           (() => {

@@ -24,7 +24,7 @@ import { scaleLinear } from "d3-scale";
 import { formatNumber } from "@/lib/format";
 import type { Anchor, DailySeries } from "@/lib/series";
 import { weekdayName } from "@/lib/series";
-import { ChartTable, niceMax } from "./ChartFrame";
+import { ChartTable, niceMax, chartStyle } from "./ChartFrame";
 
 const WIDTH = 1180;
 const HEIGHT = 520;
@@ -68,7 +68,7 @@ export function DailyCalendar({
     <>
       <svg
         className="chart-svg chart-svg-full"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
         aria-label={description}
@@ -141,14 +141,33 @@ export function DailyCalendar({
           );
         })}
 
+        {/*
+          The two keys sit at opposite ends of the plot rather than 92 units
+          apart. That gap was tuned to one text size, and chart text is scaled up
+          on narrow screens to stay readable, at which point "weekend" ran
+          straight through the second swatch. Anchored to the two edges they
+          cannot collide at any size, and the legend reads across the chart it
+          belongs to.
+        */}
         {colorByDayType && (
           <g>
             <rect className="day-bar day-bar-accent" x={MARGIN.left} y={MARGIN.top - 26} width={9} height={9} />
             <text className="series-label" x={MARGIN.left + 16} y={MARGIN.top - 18}>
               weekend
             </text>
-            <rect className="day-bar" x={MARGIN.left + 92} y={MARGIN.top - 26} width={9} height={9} />
-            <text className="series-label" x={MARGIN.left + 108} y={MARGIN.top - 18}>
+            <rect
+              className="day-bar"
+              x={WIDTH - MARGIN.right - 9}
+              y={MARGIN.top - 26}
+              width={9}
+              height={9}
+            />
+            <text
+              className="series-label"
+              x={WIDTH - MARGIN.right - 16}
+              y={MARGIN.top - 18}
+              textAnchor="end"
+            >
               weekday
             </text>
           </g>

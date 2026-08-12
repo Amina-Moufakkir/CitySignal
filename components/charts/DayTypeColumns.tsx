@@ -11,7 +11,7 @@ import { scaleLinear } from "d3-scale";
 
 import { formatNumber } from "@/lib/format";
 import type { Comparison } from "@/lib/analysis";
-import { ChartTable, niceMax, roundedBarPath, CHART } from "./ChartFrame";
+import { ChartTable, niceMax, roundedBarPath, CHART, chartStyle } from "./ChartFrame";
 
 // Sized so one viewBox unit renders as one CSS pixel, which is what makes the
 // 24px bar cap in the mark spec actually 24px on screen. Two categories, so the
@@ -64,7 +64,7 @@ export function DayTypeColumns({
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${height}`}
         role="img"
         aria-label={`${label}. Weekday average ${formatNumber(weekdayAverage, 1)} complaints per day, weekend average ${formatNumber(weekendAverage, 1)}.`}

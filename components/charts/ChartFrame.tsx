@@ -7,7 +7,24 @@
  * chart ships direct labels and a table twin.
  */
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+/**
+ * The style every chart's root `<svg>` wears.
+ *
+ * `maxWidth` pins the drawing to its viewBox width, so at full size one viewBox
+ * unit renders as one CSS pixel and the mark specs are literal.
+ *
+ * `--vb` publishes that same width to CSS. Below the full size the browser scales
+ * the whole drawing, text included, so a label declared at 12 units rendered at
+ * about 3px on a phone - unreadable, and unreadable in the section that argues
+ * from a 52-row grid. The stylesheet sizes chart text against `--vb` so the text
+ * grows in the viewBox by exactly as much as the viewBox is being shrunk by, and
+ * the on-screen result stays put. See "Chart text" in globals.css.
+ */
+export function chartStyle(viewBoxWidth: number): CSSProperties {
+  return { maxWidth: viewBoxWidth, "--vb": viewBoxWidth } as CSSProperties;
+}
 
 export const CHART = {
   /** Bars are capped rather than filling their band; the leftover is air. */

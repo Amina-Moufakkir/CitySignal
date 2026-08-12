@@ -13,7 +13,7 @@ import { scaleLinear } from "d3-scale";
 
 import { formatNumber } from "@/lib/format";
 import type { DescriptorNightSummary, WeekdayLabel } from "@/lib/analysis";
-import { ChartTable, niceMax, CHART } from "./ChartFrame";
+import { ChartTable, niceMax, CHART, chartStyle } from "./ChartFrame";
 
 const WIDTH = 860;
 const ROW_HEIGHT = 54;
@@ -64,7 +64,7 @@ export function DescriptorDumbbell({
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${height}`}
         role="img"
         aria-label={`Complaints per night by descriptor, ${baselineWeekdays[0]} to ${baselineWeekdays[baselineWeekdays.length - 1]} baseline compared with ${peakWeekday}.`}
@@ -110,14 +110,26 @@ export function DescriptorDumbbell({
           );
         })}
 
-        {/* Two marks with different meanings, so both are named on the chart. */}
+        {/*
+          Two marks with different meanings, so both are named on the chart.
+
+          Anchored to the two ends of the plot rather than set 128 units apart:
+          that spacing was tuned to one text size, and chart text scales up on
+          narrow screens so the first label grew straight through the second
+          mark. At the edges they cannot meet at any size.
+        */}
         <g>
           <circle className="marker-muted" cx={MARGIN.left + 4} cy={MARGIN.top - 14} r={4} />
           <text className="series-label" x={MARGIN.left + 14} y={MARGIN.top - 10}>
             baseline night
           </text>
-          <circle className="marker-accent" cx={MARGIN.left + 128} cy={MARGIN.top - 14} r={4} />
-          <text className="series-label" x={MARGIN.left + 138} y={MARGIN.top - 10}>
+          <circle className="marker-accent" cx={WIDTH - MARGIN.right - 4} cy={MARGIN.top - 14} r={4} />
+          <text
+            className="series-label"
+            x={WIDTH - MARGIN.right - 14}
+            y={MARGIN.top - 10}
+            textAnchor="end"
+          >
             {peakWeekday} night
           </text>
         </g>

@@ -23,7 +23,16 @@ export type Range = {
   start: string;
   /** Exclusive, YYYY-MM-DD. */
   endExclusive: string;
-  /** Human-readable inclusive span, shown to the reader. */
+  /**
+   * Human-readable inclusive span, shown to the reader.
+   *
+   * Written the way a person writes a date, not the way the query does. This
+   * string reaches the reader in figure captions, key-figure captions, chart
+   * accessible names and the table twins, so an ISO span here put
+   * "across 2024-01-01 through 2024-12-29" in the middle of the prose. The exact
+   * half-open boundaries the queries use are in `start` and `endExclusive` above,
+   * and METHOD.md prints them.
+   */
   display: string;
 };
 
@@ -37,14 +46,14 @@ export const RANGES: readonly [Range, Range] = [
     label: "Primary range",
     start: "2024-01-01",
     endExclusive: "2024-12-30",
-    display: "2024-01-01 through 2024-12-29",
+    display: "1 January to 29 December 2024",
   },
   {
     id: "stress",
     label: "Stress-test range",
     start: "2025-01-06",
     endExclusive: "2026-01-05",
-    display: "2025-01-06 through 2026-01-04",
+    display: "6 January 2025 to 4 January 2026",
   },
 ];
 

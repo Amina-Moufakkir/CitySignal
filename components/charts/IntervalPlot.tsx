@@ -9,7 +9,7 @@
 import { scaleLinear } from "d3-scale";
 
 import { formatPercentage } from "@/lib/format";
-import { ChartTable, CHART } from "./ChartFrame";
+import { ChartTable, CHART, chartStyle } from "./ChartFrame";
 import type { IntervalResult } from "@/lib/uncertainty";
 
 const WIDTH = 780;
@@ -39,7 +39,7 @@ export function IntervalPlot({
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
         aria-label={`${label}. Observed ${formatPercentage(interval.point)}, 95% interval ${formatPercentage(interval.lower)} to ${formatPercentage(interval.upper)}, against a predicted threshold of ${formatPercentage(threshold, 0)}.`}

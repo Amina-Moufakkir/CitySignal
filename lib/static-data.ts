@@ -35,7 +35,11 @@ export const PHASE3_BOARD_DATASET: BoardDataset = {
   metadata: {
     descriptor: "Loud Music/Party complaints, Saturday nights only",
     denominatorSource: "2024 ACS 5-year estimates aggregated to DCP CDTAs",
-    complaintPeriod: "2024-01-01 through 2024-12-29",
+    /* Reads out in the board provenance note, so it is written the way a person
+       writes a date, matching `Range.display`. It is stated separately from the
+       live ranges on purpose: this extract is fixed, and the note's whole point
+       is that this one chart is not queried live. */
+    complaintPeriod: "1 January to 29 December 2024",
     extractedOn: null,
     limitation:
       "CDTAs approximate, but are not identical to, legal community-district boundaries, so the complaint numerator and the household denominator are drawn on slightly different geographies.",

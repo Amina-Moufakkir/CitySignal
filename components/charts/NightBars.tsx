@@ -10,7 +10,7 @@ import { scaleLinear } from "d3-scale";
 
 import { formatNumber } from "@/lib/format";
 import type { NightSummary, PeakNight } from "@/lib/analysis";
-import { ChartTable, niceMax, roundedBarPath, CHART } from "./ChartFrame";
+import { ChartTable, niceMax, roundedBarPath, CHART, chartStyle } from "./ChartFrame";
 
 const WIDTH = 860;
 const ROW_HEIGHT = 46;
@@ -28,7 +28,7 @@ export function NightBars({ summary, peak }: { summary: NightSummary; peak: Peak
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${height}`}
         role="img"
         aria-label={

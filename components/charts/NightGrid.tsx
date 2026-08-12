@@ -16,7 +16,7 @@
 import { formatNumber, hourLabel } from "@/lib/format";
 import { NIGHT_HOURS, type NightGrid as Grid } from "@/lib/night-grid";
 import { weekdayName } from "@/lib/series";
-import { ChartTable } from "./ChartFrame";
+import { ChartTable, chartStyle } from "./ChartFrame";
 
 const WIDTH = 780;
 const ROW_HEIGHT = 12;
@@ -43,7 +43,7 @@ export function NightGrid({ grid, label }: { grid: Grid; label: string }) {
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${height}`}
         role="img"
         aria-label={`${label}. ${grid.nights.length} ${grid.weekday} nights, each split into the six hours from ${hourLabel(NIGHT_HOURS[0])} to ${hourLabel(NIGHT_HOURS[NIGHT_HOURS.length - 1])}. The busiest was ${grid.busiest.anchor} with ${formatNumber(grid.busiest.total)} complaints, the quietest ${grid.quietest.anchor} with ${formatNumber(grid.quietest.total)}, and the median night ${formatNumber(grid.medianTotal, 0)}. ${formatNumber(grid.nightsAboveHalfPeak)} of ${formatNumber(grid.nights.length)} nights reached at least half the busiest night's total.`}
@@ -51,7 +51,7 @@ export function NightGrid({ grid, label }: { grid: Grid; label: string }) {
         {NIGHT_HOURS.map((hour, column) => (
           <text
             key={hour}
-            className="tick"
+            className="tick heat-col-label"
             x={MARGIN.left + column * cellWidth + cellWidth / 2}
             y={MARGIN.top - 12}
             textAnchor="middle"
@@ -59,6 +59,13 @@ export function NightGrid({ grid, label }: { grid: Grid; label: string }) {
             {hourLabel(hour)}
           </text>
         ))}
+
+        {/* The six hour columns were headed and the seventh was not, which left
+            fifty-two numbers down the right side for the reader to identify from
+            context. The table twin has always named this column. */}
+        <text className="tick heat-col-label heat-total" x={WIDTH - MARGIN.right + 10} y={MARGIN.top - 12}>
+          Night total
+        </text>
 
         {grid.nights.map((night, row) => {
           const y = MARGIN.top + row * ROW_HEIGHT;

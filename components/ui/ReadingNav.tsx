@@ -4,22 +4,31 @@
  * Where you are, and how much is left.
  *
  * A segmented bar across the top - one segment per section, filled up to the one
- * being read - plus a dot rail on the right above 1024px using the same labels.
- * Both read the running order from `lib/sections.ts`, so neither can drift from
- * the page.
+ * being read - plus a dot rail on the right above 1024px using the same labels,
+ * plus an arrow back to the top once the reader reaches the last section. All
+ * three read the running order from `lib/sections.ts`, so none of them can drift
+ * from the page: the arrow appears at whatever section is last, rather than at a
+ * hardcoded "explore".
  *
  * Like the theme control and unlike everything else on the page, this is chrome
  * rather than content: without JavaScript it is absent, because a progress bar
  * that cannot track progress is worse than none. Nothing it does is required to
  * read the piece - the "next" links under each section are plain anchors that
- * work regardless.
+ * work regardless. That is also why the arrow may start hidden in CSS: it exists
+ * only when this component runs, so there is no state where the stylesheet hides
+ * something a reader without JavaScript needed.
  *
- * Scroll is never driven or blocked. The observer reads; the anchors are native.
+ * Scroll is never driven or blocked. The observer reads; the anchors are native,
+ * so the arrow inherits the stylesheet's smooth scrolling and, under
+ * `prefers-reduced-motion`, its instant jump.
  */
 
 import { useEffect, useState } from "react";
 
 import { SECTIONS, type SectionId } from "@/lib/sections";
+
+/** The end of the piece, wherever the running order happens to put it. */
+const LAST_INDEX = SECTIONS.length - 1;
 
 export function ReadingNav() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -119,6 +128,34 @@ export function ReadingNav() {
           ))}
         </ol>
       </nav>
+
+      {/*
+        A plain anchor, not a scripted scroll: #main is the top of the document,
+        so this works the same way the "next" links do and moves focus with it.
+        Hidden rather than unmounted so that arriving at the last section is a
+        transition rather than a pop.
+      */}
+      <a
+        className={activeIndex === LAST_INDEX ? "to-top to-top-shown" : "to-top"}
+        href="#main"
+        title="Back to the top"
+        aria-label="Back to the top of the piece"
+      >
+        <svg
+          width={18}
+          height={18}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          focusable={false}
+        >
+          <path d="M12 19.4V5.4M5.4 12 12 5.4l6.6 6.6" />
+        </svg>
+      </a>
     </>
   );
 }

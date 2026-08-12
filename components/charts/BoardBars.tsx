@@ -13,7 +13,7 @@ import { scaleLinear } from "d3-scale";
 
 import { formatNumber } from "@/lib/format";
 import type { BoardRate } from "@/lib/analysis";
-import { ChartTable, niceMax, roundedBarPath, CHART } from "./ChartFrame";
+import { ChartTable, niceMax, roundedBarPath, CHART, chartStyle } from "./ChartFrame";
 
 const WIDTH = 860;
 const ROW_HEIGHT = 32;
@@ -31,7 +31,7 @@ export function BoardBars({ boards, highlight }: { boards: BoardRate[]; highligh
     <>
       <svg
         className="chart-svg"
-        style={{ maxWidth: WIDTH }}
+        style={chartStyle(WIDTH)}
         viewBox={`0 0 ${WIDTH} ${height}`}
         role="img"
         aria-label={`Saturday-night Loud Music/Party complaints per 1,000 occupied households across 18 Brooklyn community boards. ${top.board} is highest at ${formatNumber(top.complaintsPer1000Households, 1)}; the lowest is ${formatNumber(boards[boards.length - 1].complaintsPer1000Households, 1)}.`}
@@ -61,7 +61,13 @@ export function BoardBars({ boards, highlight }: { boards: BoardRate[]; highligh
           return (
             <g key={board.board}>
               <text
-                className={isHighlight ? "tick row-label row-label-strong" : "tick row-label"}
+                /* `row-label-dense`: eighteen rows, so this is the one chart whose
+                   label pitch runs out before the type does. See globals.css. */
+                className={
+                  isHighlight
+                    ? "tick row-label row-label-dense row-label-strong"
+                    : "tick row-label row-label-dense"
+                }
                 x={MARGIN.left - 10}
                 y={y + barHeight / 2 + 4}
                 textAnchor="end"

@@ -131,9 +131,19 @@ article {
  * own `margin` shorthand silently cancels an auto margin - which is exactly what
  * happened when this was tried the other way.
  */
+/*
+ * `minmax(0, 1fr)`, not `1fr`. A bare `1fr` track is `minmax(auto, 1fr)`, so its
+ * floor is the min-content width of whatever sits in it. The full-bleed children
+ * below span all three tracks, and `.two-columns` reports a min-content width of
+ * 2 x 20rem + gap = 680px, which the outer tracks then grew to satisfy: the grid
+ * widened past the viewport instead of telling the child how much room it had,
+ * so the page scrolled sideways and the "what it does not establish" column ran
+ * off the right edge on every phone. The child's own `auto-fit` was never at
+ * fault - it collapses correctly the moment it is given a width.
+ */
 .section {
   display: grid;
-  grid-template-columns: 1fr min(var(--measure), 100%) 1fr;
+  grid-template-columns: minmax(0, 1fr) min(var(--measure), 100%) minmax(0, 1fr);
 }
 
 .section > * {
@@ -147,6 +157,26 @@ article {
 .section > .queries,
 .section > .explore {
   grid-column: 1 / -1;
+  /*
+   * Constraining the tracks above is only part of it, and the rest is the reason
+   * this took three goes to get right.
+   *
+   * A grid item's `min-width` is `auto`, so an item whose min-content is wider
+   * than its area overflows rather than shrinking into it - hence `min-width: 0`.
+   * But these items also centre themselves with `margin-inline: auto`, and an
+   * auto inline margin cancels the stretch that would otherwise size an item to
+   * its area. Without stretch the box is shrink-to-fit, which resolves to its
+   * min-content width, which for `.two-columns` is two 20rem tracks plus the gap
+   * - 680px, on a 342px grid area, on a 390px phone.
+   *
+   * `width: 100%` makes the width definite, so the box fills its area, the auto
+   * margins simply have no free space left to distribute, and the child grid's
+   * own `auto-fit` finally sees a real width and collapses to one column. The
+   * margins still centre these items at desktop widths, where `max-width` binds
+   * before the area does.
+   */
+  min-width: 0;
+  width: 100%;
 }
 
 /* Graphic-led sections claim a viewport, so a chart is never a third of one. */
@@ -397,6 +427,62 @@ code {
   }
 }
 
+/* ---------- Back to the top ---------- */
+
+/*
+ * Shown only on the last section, so it never covers a chart while there is
+ * still piece left to read. It shares the rail's right edge and matches the
+ * theme button's 36px target, so the chrome reads as one set rather than three
+ * unrelated controls. It stays at every width - the rail is the thing that needs
+ * room beside the content, this is not.
+ *
+ * `visibility` rather than opacity alone: hidden means out of the tab order and
+ * out of the accessibility tree, so it is not a control keyboard users can reach
+ * before it means anything. The delayed transition on it lets the fade finish
+ * before it goes.
+ */
+.to-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.5rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.4rem);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    visibility 0s linear 220ms;
+}
+
+.to-top-shown {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    visibility 0s;
+}
+
+.to-top:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .reveal + .reveal {
   border-top: 1px solid var(--rule);
   margin-top: 4.5rem;
@@ -523,6 +609,96 @@ code {
   /* Each chart pins its own max-width to its viewBox width, so one viewBox unit
      renders as one CSS pixel and the mark specs are literal. */
   overflow: visible;
+  /* The plate is full-bleed and the chart inside it is not, so without this the
+     narrower charts sat hard against the left edge of a band that ran on for
+     another 300-600px - the reveal's columns took up under half their plate. The
+     caption and the note above and below were already centred, so the chart was
+     the only part of the figure that was not. */
+  margin-inline: auto;
+}
+
+/*
+ * Chart text.
+ *
+ * A browser scales an SVG and everything inside it, text included, so a label
+ * declared at 12 viewBox units measures 12px only while the chart is drawn at
+ * full size. On a 390px phone the year calendar is drawn at 28% and that label
+ * landed at 3.1px; the four mid-size charts landed at 4.3px. Every value was
+ * still reachable in the table twin, but a sighted reader on a phone was looking
+ * at an axis it is not possible to read.
+ *
+ * So chart text is sized against the chart's own viewBox width, which
+ * `chartStyle` publishes as `--vb`. On screen a label ends up measuring
+ * `(--vb * k) * (available / --vb)`, which is just `k * available`: the viewBox
+ * cancels out, so one coefficient per band holds every chart at the same
+ * on-screen size no matter how wide its viewBox is.
+ *
+ * `max()` is what preserves the desktop sizes. A chart narrower than the space
+ * available is not scaled at all, so its declared size is its rendered size and
+ * the 12px floor is what applies; only a chart actually being shrunk takes the
+ * computed branch. That is why this needs no breakpoint of its own to switch on.
+ *
+ * Everything below is `em` against this root, so the hierarchy between ticks,
+ * values and row labels is stated once and survives at every width.
+ */
+.chart-svg {
+  font-size: max(12px, calc(var(--vb, 0) * var(--chart-k, 0) * 1px));
+}
+
+/*
+ * Tuned by measurement, from 320px up to the width at which no chart is scaled.
+ *
+ * Each step holds the root at 11.5px or more on screen at its narrow end. The
+ * floor is the root rather than 10px because the smallest thing derived from it
+ * is the night grid's row labels at 0.875em, and those are what have to clear
+ * 10px - the first pass targeted the root and left them at 9.8.
+ *
+ * 48rem is where `.chart-svg` stops being pinned to its viewBox width, so the
+ * steps either side of it are computed against different available widths.
+ */
+@media (max-width: 77.5rem) {
+  .chart-svg { --chart-k: 0.0122; }
+}
+
+@media (max-width: 62.5rem) {
+  .chart-svg { --chart-k: 0.017; }
+}
+
+@media (max-width: 48rem) {
+  .chart-svg { --chart-k: 0.0223; }
+}
+
+@media (max-width: 38.75rem) {
+  .chart-svg { --chart-k: 0.029; }
+}
+
+@media (max-width: 31.25rem) {
+  .chart-svg { --chart-k: 0.0364; }
+}
+
+@media (max-width: 26.25rem) {
+  .chart-svg { --chart-k: 0.0449; }
+}
+
+@media (max-width: 22.5rem) {
+  .chart-svg { --chart-k: 0.0532; }
+}
+
+/*
+ * Small multiples are the exception, because two of them share a row: each is
+ * drawn at about half the width every coefficient above assumes. Their text was
+ * landing proportionally smaller than every other chart's on the page - 9.4px at
+ * desktop and 7px at 768px - which is why the persistence pair always looked
+ * finer-printed than the charts around it. Double the coefficient, and a floor
+ * that accounts for the fact that these are scaled down even at full width.
+ *
+ * Guarded above the width where the row collapses to a single column: below that
+ * they are full-width like any other chart and the ordinary rule is correct.
+ */
+@media (min-width: 43.75rem) {
+  .small-multiples .chart-svg {
+    font-size: max(14px, calc(var(--vb, 0) * var(--chart-k, 0) * 2 * 1px));
+  }
 }
 
 .chart-note {
@@ -536,7 +712,8 @@ code {
 .small-multiples {
   display: grid;
   gap: 2rem;
-  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  /* Same floor problem as `.two-columns` above. */
+  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
   max-width: 62rem;
   margin: 0 auto;
 }
@@ -650,17 +827,17 @@ code {
 .threshold-label {
   font-family: var(--sans);
   fill: var(--muted);
-  font-size: 12px;
+  font-size: 1em;
   font-variant-numeric: tabular-nums;
 }
 
 .tick-faint {
-  font-size: 11px;
+  font-size: 0.917em;
   letter-spacing: 0.05em;
 }
 
 .row-label {
-  font-size: 12.5px;
+  font-size: 1.042em;
   fill: var(--ink-secondary);
 }
 
@@ -672,13 +849,13 @@ code {
 .series-label,
 .threshold-label {
   fill: var(--ink-secondary);
-  font-size: 12px;
+  font-size: 1em;
   font-weight: 600;
 }
 
 .value-label {
   fill: var(--ink);
-  font-size: 13px;
+  font-size: 1.083em;
   font-weight: 700;
 }
 
@@ -762,6 +939,14 @@ code {
   background: var(--accent);
   color: var(--surface);
   font-weight: 600;
+}
+
+/* Paragraphs carry bottom margin only, so this one had nothing holding it off
+   the control it reports on and sat hard against the pills while the space above
+   them stayed open. Not symmetrical on purpose: it belongs to the control, so it
+   sits nearer to it than the question does. */
+.guess-status {
+  margin-top: 1.25rem;
 }
 
 /* ---------- Theme control ---------- */
@@ -920,7 +1105,10 @@ code {
 
 .two-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  /* `min(20rem, 100%)`, not `20rem`: a bare floor of 20rem cannot shrink below
+     320px even once it is the only column, so on a 320px phone the single track
+     still overhung the screen. */
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
   gap: 2.5rem;
   max-width: 62rem;
   margin: 1.5rem auto 0;
@@ -1107,6 +1295,13 @@ code {
     opacity: 1 !important;
     transform: none !important;
   }
+
+  /* The rule above shortens durations but not delays, and the arrow uses a delay
+     to hold `visibility` until its fade finishes. With no fade to wait for, the
+     delay would leave it hanging in the tree after it had gone. */
+  .to-top {
+    transition-delay: 0s !important;
+  }
 }
 
 @media print {
@@ -1141,14 +1336,14 @@ code {
 
 .anchor-label {
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: 1em;
   font-weight: 600;
   fill: var(--ink);
 }
 
 .anchor-value {
   font-family: var(--sans);
-  font-size: 11.5px;
+  font-size: 0.958em;
   font-variant-numeric: tabular-nums;
   fill: var(--muted);
 }
@@ -1281,9 +1476,76 @@ body::after {
 .heat-6 { fill: var(--heat-6); }
 
 .heat-row-label,
+.heat-col-label,
 .heat-total {
-  font-size: 10.5px;
+  font-size: 0.875em;
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The per-night totals go on a phone, and only there.
+ *
+ * Fifty-two rows are drawn 12 units apart, which at phone widths is about five
+ * screen pixels per row. Text large enough to read is then taller than the row
+ * it labels, so scaling chart text up - which is what makes the rest of this
+ * grid legible - made this one column overlap itself into a smear. Five pixels
+ * of row cannot carry ten pixels of type; that is a density limit, not a
+ * tuning one.
+ *
+ * The dated row labels stay: they appear every fourth row, so they have four
+ * rows of space each and clear the type comfortably. The totals are in the table
+ * twin in full, and the busiest, quietest and median nights are named in the note
+ * under the chart, so nothing here is only available to a reader on a desktop.
+ */
+@media (max-width: 48rem) {
+  .heat-total {
+    display: none;
+  }
+}
+
+/*
+ * The corpus chart's annotations go on a phone, for the same reason.
+ *
+ * Five dated call-outs are staggered over three rows 34 units apart and pinned
+ * to the day they describe, so both their spacing and their horizontal room are
+ * fixed while the type is not. At phone widths they overran each other by more
+ * than 40px. Every fact they carry - the busiest day, the quietest, the median,
+ * the busiest weekday - is written out in the note directly under the chart, and
+ * the chart's own lede asks the reader to look at the shape of the year rather
+ * than at individual days. Leaders and dots go with the labels; a leader line
+ * pointing at nothing is worse than no leader.
+ *
+ * The rhythm chart passes no anchors, so this only affects the corpus chart.
+ */
+@media (max-width: 48rem) {
+  .anchor-label,
+  .anchor-value,
+  .anchor-leader,
+  .anchor-dot {
+    display: none;
+  }
+
+  /* Thinned rather than crushed: see the note in HourlyLines. */
+  .tick-alternate {
+    display: none;
+  }
+
+  /*
+   * The board comparison is the one chart the 10px floor cannot be met on.
+   *
+   * Eighteen boards are drawn 32 units apart, which on a 390px phone is 10.6
+   * screen pixels of pitch per row - a row cannot hold a label as tall as
+   * itself, so there is no type size that is both 10px and non-overlapping. It
+   * is sized to the pitch instead: about 9px, tight but clear of its neighbours,
+   * where the alternative was labels crossing each other.
+   *
+   * Every rate is in the table twin, and the section names the boards it is
+   * making a point about in the prose. Giving this chart more height at narrow
+   * widths is the real fix and wants a change to its geometry, not its type.
+   */
+  .row-label-dense {
+    font-size: 0.69em;
+  }
 }
 
 .heat-row-label-peak,
