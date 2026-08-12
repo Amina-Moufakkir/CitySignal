@@ -24,6 +24,7 @@ import {
   MethodSection,
 } from "@/components/narrative/ActClosing";
 import type { ExploreBorough } from "@/components/narrative/ExploreBoroughs";
+import { Reveal } from "@/components/ui/Reveal";
 import { largestHourlyGap } from "@/lib/analysis";
 import { boroughLabel } from "@/lib/config";
 import { loadPageData, NARRATIVE_DESCRIPTOR, type RangeBundle } from "@/lib/data";
@@ -68,26 +69,28 @@ export default async function Page() {
     <main id="main">
       <article>
         <GuessProvider>
-          <HookSection />
-          <GuessSection />
-          <RevealSection bundle={data.brooklynPrimary} />
+          <Reveal><HookSection /></Reveal>
+          <Reveal><GuessSection /></Reveal>
+          <Reveal><RevealSection bundle={data.brooklynPrimary} /></Reveal>
         </GuessProvider>
 
-        <NightsSection hourly={data.brooklynPrimary.hourly} />
-        <SaturdaySection nights={data.brooklynPrimary.nights} />
-        <DescriptorSection
-          bundle={data.descriptorsPrimary}
-          bundleStress={data.descriptorsStress}
-          descriptor={NARRATIVE_DESCRIPTOR}
-        />
+        <Reveal><NightsSection hourly={data.brooklynPrimary.hourly} /></Reveal>
+        <Reveal><SaturdaySection nights={data.brooklynPrimary.nights} /></Reveal>
+        <Reveal>
+          <DescriptorSection
+            bundle={data.descriptorsPrimary}
+            bundleStress={data.descriptorsStress}
+            descriptor={NARRATIVE_DESCRIPTOR}
+          />
+        </Reveal>
 
-        <WhereSection boards={data.boards} boardShare={data.boardShare} />
-        <PersistenceSection primary={data.brooklynPrimary} stress={data.brooklynStress} />
-        <FailedExplanationsSection pageData={data} />
+        <Reveal><WhereSection boards={data.boards} boardShare={data.boardShare} /></Reveal>
+        <Reveal><PersistenceSection primary={data.brooklynPrimary} stress={data.brooklynStress} /></Reveal>
+        <Reveal><FailedExplanationsSection pageData={data} /></Reveal>
 
-        <BoundariesSection pageData={data} />
-        <ExploreSection boroughs={explore} />
-        <MethodSection pageData={data} />
+        <Reveal><BoundariesSection pageData={data} /></Reveal>
+        <Reveal><ExploreSection boroughs={explore} /></Reveal>
+        <Reveal><MethodSection pageData={data} /></Reveal>
       </article>
     </main>
   );

@@ -144,9 +144,47 @@ code {
   padding: 4.5rem 0 0;
 }
 
-.section + .section {
+.reveal + .reveal {
   border-top: 1px solid var(--rule);
   margin-top: 4.5rem;
+}
+
+/*
+ * Entrance. `reveal-pending` is added by JavaScript after mount and never
+ * appears in the served HTML, so the default state of every section is visible.
+ * See components/ui/Reveal.tsx.
+ */
+/*
+ * The hidden state carries no transition, so adding the class snaps the section
+ * out of view in one frame rather than animating it out. Only the entering state
+ * transitions. Getting this backwards makes the class change animate 1 -> 0, and
+ * the section ends up settling visible instead of waiting to be revealed.
+ *
+ * Nothing on screen is ever hidden this way: Reveal only applies the class to
+ * sections still below the fold.
+ */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.reveal-pending.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* One beat between a section's words and its chart. No geometry is animated:
+   the weekday line already uses its dash pattern to carry identity. */
+.reveal-pending .chart {
+  opacity: 0;
+}
+
+.reveal-pending.reveal-in .chart {
+  opacity: 1;
+  transition: opacity 520ms ease 170ms;
 }
 
 .section-wide {
@@ -623,5 +661,21 @@ code {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+
+  /* Killing the transition is not enough - the hidden state has to be undone,
+     in case the preference changes after the class was applied. */
+  .reveal-pending,
+  .reveal-pending .chart {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@media print {
+  .reveal-pending,
+  .reveal-pending .chart {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
