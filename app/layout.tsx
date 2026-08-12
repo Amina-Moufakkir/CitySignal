@@ -57,9 +57,21 @@ export const viewport = {
   ],
 };
 
+/**
+ * Applies a stored theme choice before first paint. Doing this from React would
+ * paint the system palette first and correct it after hydration, which is the
+ * flash every theme toggle is judged on. Wrapped in try/catch because storage
+ * can throw in private mode; failing here must never block the page.
+ */
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("citysignal-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})()`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // The script above sets an attribute on <html> before React hydrates.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

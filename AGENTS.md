@@ -101,6 +101,26 @@ Follow the data-visualization method already applied:
   `[0, 23]`. The late-night band spans 22:00 to the axis end plus 00:00 to 04:00.
 - Gridlines are solid hairlines. Never dashed.
 
+## Theme
+
+Three states: system (the default), light, dark. The dark palette is declared
+twice — under `@media (prefers-color-scheme: dark)` scoped to
+`:root:not([data-theme="light"])`, and again under `:root[data-theme="dark"]` —
+so an explicit choice beats the OS setting in both directions. CSS cannot share a
+declaration block between a media query and a plain selector, so the duplication
+is deliberate; `lib/theme.test.ts` fails if the two copies drift.
+
+An inline script in the document head applies the stored choice before first
+paint. Do not move that into React: applying it after hydration paints the wrong
+palette first, which is the flash the whole arrangement exists to avoid.
+
+The toggle is a control, not content, so unlike everything else it is absent
+without JavaScript rather than present. A dead button would be worse than none.
+
+Segmented controls use native `<input type="radio">` with a visually hidden input
+and a styled label. `role="radio"` on a button needs a roving tabindex to get
+arrow-key behaviour; native inputs get it for free.
+
 ## Content must survive without JavaScript
 
 Everything is in the DOM and readable with scripting disabled. Scroll effects and

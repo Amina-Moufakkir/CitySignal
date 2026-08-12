@@ -38,25 +38,34 @@ export function useGuess(): GuessState {
   return useContext(GuessContext);
 }
 
+/**
+ * Native radios rather than `role="radio"` buttons: the group is then one tab
+ * stop and arrow keys move within it, which hand-rolled buttons only get with a
+ * roving tabindex.
+ */
 export function GuessInput() {
   const { guess, setGuess } = useGuess();
 
   return (
     <div className="guess">
-      <div className="guess-options" role="radiogroup" aria-label="How much more do New Yorkers complain on weekends?">
+      <fieldset className="guess-options">
+        <legend className="visually-hidden">
+          How much more do New Yorkers complain on weekends?
+        </legend>
         {GUESS_OPTIONS.map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={guess === option}
-            className={guess === option ? "guess-option guess-option-active" : "guess-option"}
-            onClick={() => setGuess(option)}
-          >
-            {formatSignedPercentage(option, 0)}
-          </button>
+          <div className="guess-option" key={option}>
+            <input
+              type="radio"
+              id={`guess-${option}`}
+              name="guess"
+              value={option}
+              checked={guess === option}
+              onChange={() => setGuess(option)}
+            />
+            <label htmlFor={`guess-${option}`}>{formatSignedPercentage(option, 0)}</label>
+          </div>
         ))}
-      </div>
+      </fieldset>
       <p className="guess-status" role="status">
         {guess === null
           ? "Pick one. Nothing below changes either way — the answer is already on the page."

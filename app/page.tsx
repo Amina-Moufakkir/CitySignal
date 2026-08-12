@@ -25,6 +25,7 @@ import {
 } from "@/components/narrative/ActClosing";
 import type { ExploreBorough } from "@/components/narrative/ExploreBoroughs";
 import { Reveal } from "@/components/ui/Reveal";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { largestHourlyGap } from "@/lib/analysis";
 import { boroughLabel } from "@/lib/config";
 import { loadPageData, NARRATIVE_DESCRIPTOR, type RangeBundle } from "@/lib/data";
@@ -67,6 +68,7 @@ export default async function Page() {
 
   return (
     <main id="main">
+      <ThemeToggle />
       <article>
         <GuessProvider>
           <Reveal><HookSection /></Reveal>

@@ -32,8 +32,19 @@
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
 }
 
+/*
+ * Dark values are applied from two scopes, and both are needed.
+ *
+ *   1. The OS preference - but only when the reader has not explicitly asked for
+ *      light, so an explicit light choice beats a dark system setting.
+ *   2. An explicit dark choice, which must beat a light system setting.
+ *
+ * There is no way to share one declaration block between a media query and a
+ * plain selector in CSS, so the palette is written twice. Keep them in sync:
+ * `theme.test.ts` fails if they drift.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
 
     --surface: #121417;
@@ -48,6 +59,22 @@
     --accent-wash: rgba(226, 112, 58, 0.13);
     --de-emphasis: #9aa3ad;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #121417;
+  --surface-raised: #191c20;
+  --ink: #eef1f4;
+  --ink-secondary: #b9c0c7;
+  --muted: #9aa3ad;
+  --rule: #2b3037;
+  --grid: #242930;
+
+  --accent: #e2703a;
+  --accent-wash: rgba(226, 112, 58, 0.13);
+  --de-emphasis: #9aa3ad;
 }
 
 * {
@@ -446,34 +473,99 @@ code {
   margin: 2rem 0;
 }
 
-.guess-options {
+/* Segmented controls. The radio itself is visually hidden but focusable, and
+   its label is the visible control, so keyboard behaviour is the browser's. */
+.guess-options,
+.theme-options {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-.guess-option {
-  padding: 0.7rem 1.3rem;
+.guess-option,
+.theme-option {
+  position: relative;
+}
+
+.guess-option input,
+.theme-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.guess-option label,
+.theme-option label {
+  display: block;
   border: 1px solid var(--rule);
   border-radius: 999px;
   background: var(--surface-raised);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 1rem;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
-.guess-option:hover {
+.guess-option label {
+  padding: 0.7rem 1.3rem;
+  font-size: 1rem;
+}
+
+.theme-option label {
+  padding: 0.32rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.guess-option input:hover + label,
+.theme-option input:hover + label {
   border-color: var(--accent);
 }
 
-.guess-option-active {
+/* The ring rides the label, since the input it belongs to is transparent. */
+.guess-option input:focus-visible + label,
+.theme-option input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.guess-option input:checked + label,
+.theme-option input:checked + label {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--surface);
   font-weight: 600;
+}
+
+/* ---------- Theme control ---------- */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding-top: 1.75rem;
+}
+
+.theme-toggle-label {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .guess-status {
