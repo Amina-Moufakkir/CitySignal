@@ -1,11 +1,16 @@
 /**
  * Complaints by hour of day, weekday against weekend.
  *
- * The x axis is an INTERVAL scale over [0, 24], not a point scale over [0, 23].
- * Hour 22 covers 22:00-22:59, so it occupies the band from 22 to 23 and the
- * late-night window runs from 22:00 to the axis end plus 00:00 to 04:00. The
- * previous build used a point scale, which made the same band ambiguous and
- * under-drew the evening half.
+ * The axis runs 6 AM to 6 AM, not midnight to midnight. A midnight-anchored axis
+ * cuts the night in half and puts a spike at each edge with the shaded window in
+ * two pieces, which makes the chart argue against the point it is illustrating.
+ * Rebasing to 6 AM - the genuine trough - gives one contiguous hump inside one
+ * contiguous band, and sets up the next section's "a night does not stop at
+ * midnight" before that sentence is written.
+ *
+ * It is still an INTERVAL scale, not a point scale: hour 22 occupies the band
+ * from 22 to 23, so the shaded window has exact edges rather than approximate
+ * ones.
  *
  * Two series, so identity gets three channels: the accent hue, a dash pattern on
  * the context line, and direct labels at both line ends.
@@ -18,9 +23,18 @@ import { formatNumber, hourLabel } from "@/lib/format";
 import { NIGHT_END_HOUR, NIGHT_START_HOUR, type HourRow, type HourlyGap } from "@/lib/analysis";
 import { ChartTable, niceMax, CHART } from "./ChartFrame";
 
-const WIDTH = 720;
-const HEIGHT = 340;
-const MARGIN = { top: 30, right: 92, bottom: 52, left: 52 };
+const WIDTH = 860;
+const HEIGHT = 400;
+const MARGIN = { top: 44, right: 96, bottom: 56, left: 56 };
+
+/** The hour the axis begins on. 6 AM is the quietest hour, so the day is cut
+ *  where nothing is happening rather than through the middle of the story. */
+export const DAY_START_HOUR = 6;
+
+/** Position of a clock hour on the rebased axis, 0 to 23. */
+function shift(hour: number): number {
+  return (hour - DAY_START_HOUR + 24) % 24;
+}
 
 export function HourlyLines({
   hours,
@@ -33,22 +47,28 @@ export function HourlyLines({
 }) {
   const plotWidth = WIDTH - MARGIN.left - MARGIN.right;
   const plotHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
-  const max = niceMax(
-    Math.max(...hours.flatMap((row) => [row.weekdayAverage, row.weekendAverage])),
-  );
+  const max = niceMax(Math.max(...hours.flatMap((row) => [row.weekdayAverage, row.weekendAverage])));
 
   const x = scaleLinear().domain([0, 24]).range([MARGIN.left, WIDTH - MARGIN.right]);
   const y = scaleLinear().domain([0, max]).range([HEIGHT - MARGIN.bottom, MARGIN.top]);
-  // Plotted at the midpoint of each hour band, which is where the value applies.
-  const centre = (hour: number) => x(hour + 0.5);
+  // Plotted at the midpoint of each hour's band, which is where its value applies.
+  const centre = (hour: number) => x(shift(hour) + 0.5);
+
+  // Drawn in axis order, not clock order, or the line would jump the wrap point.
+  const ordered = [...hours].sort((a, b) => shift(a.hour) - shift(b.hour));
+  const last = ordered[ordered.length - 1];
 
   const path = (key: "weekdayAverage" | "weekendAverage") =>
     d3Line<HourRow>()
       .x((row) => centre(row.hour))
       .y((row) => y(row[key]))
-      .curve(curveMonotoneX)(hours) ?? "";
+      .curve(curveMonotoneX)(ordered) ?? "";
 
-  const last = hours[hours.length - 1];
+  // 22:00 through 03:59 is contiguous on this axis: one band, not two.
+  const nightStart = shift(NIGHT_START_HOUR);
+  const nightEnd = shift(NIGHT_END_HOUR - 1) + 1;
+
+  const ticks = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
   return (
     <>
@@ -59,30 +79,27 @@ export function HourlyLines({
         role="img"
         aria-label={
           peak.kind === "gap"
-            ? `${label}. The weekend-weekday gap is widest at ${hourLabel(peak.hour)}, where weekend days average ${formatNumber(peak.weekendAverage, 1)} complaints against ${formatNumber(peak.weekdayAverage, 1)} on weekdays.`
+            ? `${label}. The axis runs from 6 AM to 6 AM so the night is unbroken. The weekend-weekday gap is widest at ${hourLabel(peak.hour)}, where weekend days average ${formatNumber(peak.weekendAverage, 1)} complaints against ${formatNumber(peak.weekdayAverage, 1)} on weekdays.`
             : `${label}. No hour shows a positive weekend-weekday gap.`
         }
       >
-        {/* Late night: 22:00 to the end of the axis, and 00:00 to 04:00. */}
         <rect
           className="night-band"
-          x={x(NIGHT_START_HOUR)}
+          x={x(nightStart)}
           y={MARGIN.top}
-          width={x(24) - x(NIGHT_START_HOUR)}
+          width={x(nightEnd) - x(nightStart)}
           height={plotHeight}
         />
-        <rect
-          className="night-band"
-          x={x(0)}
-          y={MARGIN.top}
-          width={x(NIGHT_END_HOUR) - x(0)}
-          height={plotHeight}
-        />
-        <text className="tick tick-faint" x={x(2)} y={MARGIN.top - 10} textAnchor="middle">
-          late night
+        <text
+          className="tick tick-faint"
+          x={x((nightStart + nightEnd) / 2)}
+          y={MARGIN.top - 12}
+          textAnchor="middle"
+        >
+          10 PM – 4 AM
         </text>
 
-        {y.ticks(3).map((tick) => (
+        {y.ticks(4).map((tick) => (
           <g key={tick}>
             <line className="grid" x1={MARGIN.left} y1={y(tick)} x2={WIDTH - MARGIN.right} y2={y(tick)} />
             <text className="tick" x={MARGIN.left - 10} y={y(tick) + 4} textAnchor="end">
@@ -93,19 +110,17 @@ export function HourlyLines({
 
         <line className="axis" x1={MARGIN.left} y1={y(0)} x2={WIDTH - MARGIN.right} y2={y(0)} />
 
-        {[0, 4, 8, 12, 16, 20, 24].map((hour) => (
-          <text key={hour} className="tick" x={x(hour)} y={y(0) + 22} textAnchor="middle">
-            {hour === 24 ? "24" : hour}
+        {ticks.map((position) => (
+          <text
+            key={position}
+            className="tick"
+            x={x(position)}
+            y={y(0) + 22}
+            textAnchor="middle"
+          >
+            {hourLabel((position + DAY_START_HOUR) % 24)}
           </text>
         ))}
-        <text
-          className="tick tick-faint"
-          x={MARGIN.left + plotWidth / 2}
-          y={HEIGHT - 12}
-          textAnchor="middle"
-        >
-          hour of day
-        </text>
 
         <path className="line-muted" d={path("weekdayAverage")} />
         <path className="line-accent" d={path("weekendAverage")} />
@@ -134,12 +149,9 @@ export function HourlyLines({
 
         {peak.kind === "gap" &&
           (() => {
-            // The peak often sits at midnight, hard against the y axis. Anchor the
-            // annotation away from whichever edge it is near so it never overlaps
-            // the axis or runs outside the plot.
             const px = centre(peak.hour);
-            const nearLeft = px - MARGIN.left < 70;
-            const nearRight = WIDTH - MARGIN.right - px < 70;
+            const nearLeft = px - MARGIN.left < 80;
+            const nearRight = WIDTH - MARGIN.right - px < 80;
             const anchor = nearLeft ? "start" : nearRight ? "end" : "middle";
             const offset = nearLeft ? 8 : nearRight ? -8 : 0;
 
@@ -166,9 +178,9 @@ export function HourlyLines({
       </svg>
 
       <ChartTable
-        summary={`${label}: average complaints per day by hour`}
+        summary={`${label}: average complaints per day by hour, from ${hourLabel(DAY_START_HOUR)} to ${hourLabel(DAY_START_HOUR)}`}
         columns={["Hour", "Weekday average", "Weekend average"]}
-        rows={hours.map((row) => [
+        rows={ordered.map((row) => [
           hourLabel(row.hour),
           formatNumber(row.weekdayAverage, 1),
           formatNumber(row.weekendAverage, 1),

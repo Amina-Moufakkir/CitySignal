@@ -16,7 +16,12 @@ import { DayTypeColumns } from "@/components/charts/DayTypeColumns";
 
 type DayTypeColumnsProps = ComponentProps<typeof DayTypeColumns>;
 
-export const GUESS_OPTIONS = [10, 30, 60, 100] as const;
+/**
+ * The options bracket the answer rather than sitting entirely below it. With the
+ * old set of 10/30/60/100 against roughly +78%, no option was close and every
+ * answer got the same dismissal, which made the question unwinnable.
+ */
+export const GUESS_OPTIONS = [10, 30, 60, 80, 100] as const;
 
 type GuessValue = (typeof GUESS_OPTIONS)[number];
 
@@ -43,8 +48,13 @@ export function useGuess(): GuessState {
  * stop and arrow keys move within it, which hand-rolled buttons only get with a
  * roving tabindex.
  */
-export function GuessInput() {
+export function GuessInput({ weekdayAverage }: { weekdayAverage: number | null }) {
   const { guess, setGuess } = useGuess();
+
+  // The guess is turned back into the thing being guessed about. A percentage is
+  // abstract; a number of complaints on a Saturday is not.
+  const implied =
+    guess === null || weekdayAverage === null ? null : weekdayAverage * (1 + guess / 100);
 
   return (
     <div className="guess">
@@ -67,15 +77,28 @@ export function GuessInput() {
         ))}
       </fieldset>
       <p className="guess-status" role="status">
-        {guess === null
-          ? "Pick one. Nothing below changes either way — the answer is already on the page."
-          : `You guessed ${formatSignedPercentage(guess, 0)}. Keep reading.`}
+        {guess === null ? (
+          "Pick one. Nothing below changes either way — the answer is already on the page."
+        ) : implied === null ? (
+          `You guessed ${formatSignedPercentage(guess, 0)}. Hold that number.`
+        ) : (
+          <>
+            {formatSignedPercentage(guess, 0)} would put a weekend day at about{" "}
+            <strong>{formatNumber(implied)}</strong> complaints, against{" "}
+            {formatNumber(weekdayAverage ?? 0)} on a weekday. Hold that number.
+          </>
+        )}
       </p>
     </div>
   );
 }
 
-/** Shown in the reveal once a guess exists. Absent, not zero, when it does not. */
+/**
+ * Shown in the reveal once a guess exists. Absent, not zero, when it does not.
+ *
+ * Which option counts as closest is computed against the live figure rather than
+ * hardcoded, so it stays right if the data moves.
+ */
 export function GuessComparison({ actual }: { actual: number }) {
   const { guess } = useGuess();
 
@@ -83,15 +106,19 @@ export function GuessComparison({ actual }: { actual: number }) {
     return null;
   }
 
+  const closest = GUESS_OPTIONS.reduce((best, option) =>
+    Math.abs(option - actual) < Math.abs(best - actual) ? option : best,
+  );
   const gap = actual - guess;
-  const closeness =
-    Math.abs(gap) < 10 ? "close" : Math.abs(gap) < 30 ? "in the right region" : "some way off";
+  const magnitude = Math.abs(gap);
 
   return (
     <p className="guess-result">
-      You guessed {formatSignedPercentage(guess, 0)}. The answer is{" "}
-      {formatSignedPercentage(actual)} — {closeness}, {gap >= 0 ? "under" : "over"} by{" "}
-      {formatNumber(Math.abs(gap), 1)} percentage points.
+      You guessed {formatSignedPercentage(guess, 0)}; the answer is{" "}
+      {formatSignedPercentage(actual)}.{" "}
+      {guess === closest
+        ? `That is the closest of the ${GUESS_OPTIONS.length} — ${formatNumber(magnitude, 1)} percentage points ${gap >= 0 ? "under" : "over"}.`
+        : `${formatNumber(magnitude, 1)} percentage points ${gap >= 0 ? "under" : "over"}; ${formatSignedPercentage(closest, 0)} was the closest option.`}
     </p>
   );
 }

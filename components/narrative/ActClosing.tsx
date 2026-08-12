@@ -7,7 +7,7 @@
 
 import { ExploreBoroughs, type ExploreBorough } from "./ExploreBoroughs";
 import { Boundary, Section } from "./Section";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatTimestamp } from "@/lib/format";
 import { dailyUrl, descriptorNightUrl, hourlyUrl, REVALIDATE_SECONDS } from "@/lib/socrata";
 import { PRIMARY_RANGE, RANGES, STRESS_RANGE } from "@/lib/config";
 import { PHASE3_BOARD_DATASET } from "@/lib/static-data";
@@ -215,7 +215,11 @@ export function MethodSection({ pageData }: { pageData: PageData }) {
         earlier static build is preserved on the <code>main</code> branch and under{" "}
         <code>legacy/</code>.
       </p>
-      <p className="source-line">Data last refreshed {pageData.fetchedAt}.</p>
+      <p className="source-line">
+        Live figures on this page were last fetched from NYC Open Data on{" "}
+        {formatTimestamp(pageData.fetchedAt)}, and refresh at most every{" "}
+        {formatNumber(REVALIDATE_SECONDS / 3600)} hours.
+      </p>
     </Section>
   );
 }

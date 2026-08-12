@@ -39,3 +39,26 @@ export function hourLabel(hour: number): string {
 export function possessiveLabel(label: string): string {
   return label.endsWith("s") ? `${label}'` : `${label}'s`;
 }
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/**
+ * A machine timestamp rendered for a reader. Parsed from its components rather
+ * than through `new Date(string)`, keeping the same discipline the analysis uses,
+ * and printed in UTC so the server and any reader see the same words.
+ */
+export function formatTimestamp(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+
+  if (!match) {
+    return "an unrecorded time";
+  }
+
+  const [, year, month, day, hour, minute] = match;
+  const monthName = MONTHS[Number(month) - 1] ?? month;
+
+  return `${Number(day)} ${monthName} ${year} at ${hour}:${minute} UTC`;
+}

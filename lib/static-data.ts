@@ -89,10 +89,12 @@ export type FailedHypothesis = {
   outcome: string;
   /** Why the prediction was worth making. */
   rationale: string;
-  /** Headline figure, primary period. Null when the figure is computed live. */
-  primary: string | null;
-  /** Headline figure, stress period. */
-  stress: string | null;
+  /**
+   * What was measured, as a complete sentence. Null when the figure is computed
+   * live and rendered by the section instead. Bare fragments were rendering as
+   * dangling sentences under "What came back".
+   */
+  measurement: string | null;
   source: Source;
 };
 
@@ -105,8 +107,7 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "They accounted for less than that, and the reporting was spread across many boards rather than dominated by three.",
     rationale:
       "A concentrated pattern would point somewhere specific. A distributed one does not.",
-    primary: null,
-    stress: "37.7%",
+    measurement: null,
     source: "committed",
   },
   {
@@ -117,8 +118,8 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "Density showed only a weak association with normalized rates, and did not account for BK04.",
     rationale:
       "More households per acre means more neighbours within earshot, and more people positioned to file a report.",
-    primary: "weak association",
-    stress: null,
+    measurement:
+      "The association between residential density and normalized complaint rate was weak, and it left BK04's position unexplained.",
     source: "phase-2-3",
   },
   {
@@ -129,8 +130,8 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "The relationship was very weak, and did not account for BK04.",
     rationale:
       "Bars and venues concentrate late-night activity, and the pattern is a late-night one.",
-    primary: "very weak relationship",
-    stress: null,
+    measurement:
+      "The relationship between current on-premises licence exposure and normalized complaint rate was very weak, and it left BK04's position unexplained.",
     source: "phase-2-3",
   },
   {
@@ -141,8 +142,8 @@ export const FAILED_HYPOTHESES: readonly FailedHypothesis[] = [
       "The top ten lots accounted for a small fraction, and most lots that appeared did so on a single Saturday night.",
     rationale:
       "A handful of repeatedly-reported buildings would be a different phenomenon from a broad one.",
-    primary: "10.4%",
-    stress: "8.4%",
+    measurement:
+      "The ten most-reported tax lots accounted for 10.4% of BK04's complaints in the primary period and 8.4% in the stress period. Roughly 78-81% of the lots that appeared at all did so on exactly one Saturday night.",
     source: "phase-2-3",
   },
 ];

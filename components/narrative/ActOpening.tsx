@@ -15,8 +15,15 @@ export function HookSection() {
   return (
     <Section id="hook" eyebrow="CitySignal" title="Where is New York loud?" lead>
       <p className="lede">
-        This is not that map. Nobody measures the noise. What gets measured is who picks up the
-        phone.
+        There is a whole genre of answer to that question. Rankings of the city&rsquo;s noisiest
+        neighbourhoods. Apartment-hunting guides that score a block on how quiet it is. Maps that
+        shade a district darker the more it complains. They are built on one public dataset — NYC
+        311 service requests — and they all make the same move: they treat a count of complaints as
+        a measurement of sound.
+      </p>
+      <p className="lede">
+        It is not one. Nobody in that dataset measured anything. What got recorded is who picked up
+        the phone.
       </p>
       <p>
         Every record here is a New Yorker deciding that something was worth reporting to 311 — and
@@ -26,7 +33,9 @@ export function HookSection() {
       </p>
       <p>
         So the pattern below is real, and it is repeatable, and it is not a map of noise. It is a
-        map of reporting. Those are different maps, and the difference is the whole point.
+        map of reporting. Those are different maps, and the difference is the whole point. This
+        piece follows one pattern in that data as far as it will honestly go — and then stops where
+        the evidence does, which is earlier than a ranking would.
       </p>
       <Boundary>
         Throughout: a complaint is a report, not a measurement. Complaint counts are not unique
@@ -36,14 +45,18 @@ export function HookSection() {
   );
 }
 
-export function GuessSection() {
+export function GuessSection({ bundle }: { bundle: RangeBundle }) {
+  const summary = bundle.daily.status === "ok" ? bundle.daily.value : null;
+  const weekdayAverage =
+    summary && summary.comparison.kind === "computed" ? summary.comparison.weekdayAverage : null;
+
   return (
     <Section id="guess" eyebrow="Before the answer" title="How much more, on a weekend?">
       <p>
         Take the average number of residential noise complaints Brooklyn files on a weekday. Now
         take the average for a weekend day. How much bigger is the second number?
       </p>
-      <GuessInput />
+      <GuessInput weekdayAverage={weekdayAverage} />
     </Section>
   );
 }

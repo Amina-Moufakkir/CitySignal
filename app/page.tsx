@@ -78,7 +78,7 @@ export default async function Page() {
       <article>
         <GuessProvider>
           <Reveal><HookSection /></Reveal>
-          <Reveal><GuessSection /></Reveal>
+          <Reveal><GuessSection bundle={data.brooklynPrimary} /></Reveal>
           <Reveal><CorpusSection bundle={data.brooklynPrimary} /></Reveal>
           <Reveal><RhythmSection bundle={data.brooklynPrimary} /></Reveal>
           <Reveal><RevealSection bundle={data.brooklynPrimary} /></Reveal>
@@ -94,7 +94,14 @@ export default async function Page() {
           />
         </Reveal>
 
-        <Reveal><WhereSection boards={data.boards} boardShare={data.boardShare} /></Reveal>
+        <Reveal>
+          <WhereSection
+            boards={data.boards}
+            boardShare={data.boardShare}
+            descriptors={data.descriptorsPrimary}
+            descriptor={NARRATIVE_DESCRIPTOR}
+          />
+        </Reveal>
         <Reveal><PersistenceSection primary={data.brooklynPrimary} stress={data.brooklynStress} /></Reveal>
         <Reveal><FailedExplanationsSection pageData={data} /></Reveal>
 

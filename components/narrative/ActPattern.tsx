@@ -140,7 +140,7 @@ export function DescriptorSection({
 
   if (summary.status === "failed") {
     return (
-      <Section id="parties" eyebrow="Narrowing further" title="And not every kind of noise.">
+      <Section id="parties" eyebrow="The last cut" title="And not every kind of noise.">
         <Unavailable>{describeFailure(summary.failure)}</Unavailable>
       </Section>
     );
@@ -148,7 +148,7 @@ export function DescriptorSection({
 
   if (excess.kind === "no-data") {
     return (
-      <Section id="parties" eyebrow="Narrowing further" title="And not every kind of noise.">
+      <Section id="parties" eyebrow="The last cut" title="And not every kind of noise.">
         <p>The descriptor breakdown is not available for this period.</p>
       </Section>
     );
@@ -156,7 +156,7 @@ export function DescriptorSection({
 
   if (excess.kind === "no-excess") {
     return (
-      <Section id="parties" eyebrow="Narrowing further" title="And not every kind of noise.">
+      <Section id="parties" eyebrow="The last cut" title="And not every kind of noise.">
         <p>
           The peak night does not run above the {listWithAnd(["Monday", "Thursday"])} baseline in
           this period, so there is no excess to attribute to any one kind of report.
@@ -166,7 +166,7 @@ export function DescriptorSection({
   }
 
   return (
-    <Section id="parties" eyebrow="Narrowing further" title="And not every kind of noise." wide>
+    <Section id="parties" eyebrow="The last cut" title="And not every kind of noise." wide>
       <p>
         311 asks what the noise was. Comparing {excess.peakWeekday} nights against the{" "}
         {listWithAnd(excess.baselineWeekdays)} baseline, one answer moves and the others barely do.

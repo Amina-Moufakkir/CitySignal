@@ -16,24 +16,38 @@ import { formatNumber, formatPercentage, formatSignedPercentage } from "@/lib/fo
 import { describeFailure } from "@/lib/socrata";
 import { comparedToThreshold } from "@/lib/uncertainty";
 import type { BoardRate } from "@/lib/analysis";
-import type { PageData, RangeBundle } from "@/lib/data";
-import {
-  FAILED_HYPOTHESES,
-  PHASE3_BOARD_DATASET,
-  SINGLE_NIGHT_LOCATION_SHARE,
-  SOURCE_LABELS,
-} from "@/lib/static-data";
+import type { DescriptorBundle, PageData, RangeBundle } from "@/lib/data";
+import { FAILED_HYPOTHESES, PHASE3_BOARD_DATASET, SOURCE_LABELS } from "@/lib/static-data";
 
 export function WhereSection({
   boards,
   boardShare,
+  descriptors,
+  descriptor,
 }: {
   boards: BoardRate[];
   boardShare: PageData["boardShare"];
+  descriptors: DescriptorBundle;
+  descriptor: string;
 }) {
   const metadata = PHASE3_BOARD_DATASET.metadata;
   const top = boards[0];
   const bottom = boards[boards.length - 1];
+
+  /**
+   * The same quantity appears twice in this piece: the live descriptor query
+   * counts it borough-wide, and this extract counts it per board. They do not
+   * match exactly, so the difference is stated rather than left for a reader to
+   * find by multiplying.
+   */
+  const { excess, summary } = descriptors;
+  const liveTotal =
+    excess.kind === "computed" && summary.status === "ok"
+      ? (summary.value.weekdays.find((row) => row.weekday === excess.peakWeekday)?.byDescriptor[
+          descriptor
+        ] ?? null)
+      : null;
+  const shortfall = liveTotal === null ? null : liveTotal - boardShare.total;
 
   return (
     <Section id="where" eyebrow="The obvious next question" title="So where?" wide>
@@ -64,11 +78,27 @@ export function WhereSection({
       </ChartFigure>
 
       <SourceLine>
-        Everything above this section is queried live. This chart is not: it is a fixed extract
-        covering {metadata.complaintPeriod}, counting {metadata.descriptor}.
-        {metadata.extractedOn ? ` Extracted ${metadata.extractedOn}.` : " The extraction date was not recorded."}{" "}
-        Denominator: {metadata.denominatorSource}. Community-board normalization exists only for
-        Brooklyn.
+        <span className="note-block">
+          Everything above this section is queried live. This chart is not: it is a fixed extract
+          covering {metadata.complaintPeriod}, counting {metadata.descriptor}.
+          {metadata.extractedOn
+            ? ` Extracted ${metadata.extractedOn}.`
+            : " The extraction date was not recorded."}{" "}
+          Denominator: {metadata.denominatorSource}. Community-board normalization exists only for
+          Brooklyn.
+        </span>
+        {shortfall !== null && liveTotal !== null && (
+          <span className="note-block">
+            The two do not quite agree, which is worth stating. The live query counts{" "}
+            {formatNumber(liveTotal)} of these complaints across the borough; this extract totals{" "}
+            {formatNumber(boardShare.total)}, {formatNumber(Math.abs(shortfall))} fewer —{" "}
+            {formatPercentage((Math.abs(shortfall) / liveTotal) * 100)} of the total. A board-level
+            extract can only count complaints that carry a usable community board, so records
+            missing one would drop out at exactly this step. That is the likely explanation rather
+            than a verified one: the extract&rsquo;s own join is not committed to this repository,
+            so it cannot be checked from here.
+          </span>
+        )}
       </SourceLine>
 
       <Boundary>
@@ -179,8 +209,8 @@ export function FailedExplanationsSection({ pageData }: { pageData: PageData }) 
     >
       <p>
         The pattern is specific enough by now that it ought to have a cause. Four candidates were
-        written down as predictions — each stated before the data was examined, each with a number
-        attached, so it could come back wrong.
+        written down as predictions, each stated before the data was examined and most with a
+        number attached, so they could come back wrong.
       </p>
       <p className="lede">All four came back wrong. That is the result, not a gap in it.</p>
 
@@ -226,15 +256,8 @@ export function FailedExplanationsSection({ pageData }: { pageData: PageData }) 
               </>
             )}
 
-            {hypothesis.id !== "concentration" && (hypothesis.primary || hypothesis.stress) && (
-              <p className="prediction-figure">
-                {hypothesis.primary}
-                {hypothesis.primary && hypothesis.stress ? " in the first period, " : ""}
-                {hypothesis.stress ? `${hypothesis.stress} in the second` : ""}
-                {hypothesis.id === "repeat-locations"
-                  ? `. Roughly ${SINGLE_NIGHT_LOCATION_SHARE} of the locations that appeared did so on exactly one Saturday night.`
-                  : "."}
-              </p>
+            {hypothesis.measurement !== null && (
+              <p className="prediction-figure">{hypothesis.measurement}</p>
             )}
 
             <SourceLine>{SOURCE_LABELS[hypothesis.source]}</SourceLine>
