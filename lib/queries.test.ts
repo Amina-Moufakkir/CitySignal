@@ -7,14 +7,13 @@ import { BOROUGHS, PRIMARY_RANGE, RANGES, STRESS_RANGE } from "./config";
 import { dailyUrl, descriptorNightUrl, hourlyUrl, REVALIDATE_SECONDS } from "./socrata";
 
 /**
- * `analysis/queries.md` publishes the exact query strings so a reader can re-run
- * them. A document that drifts from the code is worse than no document, so this
+ * `METHOD.md` publishes the exact query strings so a reader can re-run them. A document that drifts from the code is worse than no document, so this
  * pins the two together: change a query builder without updating the file and
  * the suite fails.
  */
-const DOC = readFileSync(join(process.cwd(), "analysis", "queries.md"), "utf8");
+const DOC = readFileSync(join(process.cwd(), "METHOD.md"), "utf8");
 
-describe("analysis/queries.md", () => {
+describe("METHOD.md", () => {
   test("publishes the daily query exactly as the code builds it", () => {
     expect(DOC).toContain(decodeURIComponent(dailyUrl(PRIMARY_RANGE)));
   });

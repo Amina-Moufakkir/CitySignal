@@ -1,11 +1,13 @@
-# Queries and figure provenance
+# Method
 
-Every number CitySignal shows, and where it comes from.
+How CitySignal is built, every query it runs, and where each number comes from.
 
 This file exists because the project's strongest claim is its method, and a
-method that cannot be re-run is an assertion. Each live query below is the exact
-string the code builds — `lib/queries.test.ts` fails if this document and
-`lib/socrata.ts` ever disagree, so it cannot drift.
+method that cannot be re-run is an assertion. The piece itself carries only the
+source, the two periods and the night definition; everything technical is here,
+where it can be read at length instead of skimmed past. Each live query below is
+the exact string the code builds — `lib/queries.test.ts` fails if this document
+and `lib/socrata.ts` ever disagree, so it cannot drift.
 
 The URLs are shown decoded for readability. `+` is a literal space. Pasting one
 into a browser works; `curl --get --data-urlencode` is shown for the shell.
@@ -200,8 +202,55 @@ shown is narrower than the data warrants.
 - **Validation.** Aggregate rows are rejected and counted, never coerced.
   `Number(null)` and `Number("")` are both `0` and both pass `Number.isInteger`,
   so the explicit null and empty-string guards are load-bearing.
-- **Bootstraps.** Percentile intervals with a seeded xorshift32 generator, 2,000
-  draws, so the same code returns the same interval. Both assume independent
-  resampling units, and both are therefore narrower than the truth: daily counts
-  are seasonal and autocorrelated, and complaints cluster within nights and
-  addresses.
+### Bootstraps
+
+Both intervals are percentile bootstraps. Randomness comes from a seeded
+xorshift32 generator rather than `Math.random`, so an interval is reproducible
+from the committed code, stable across CI runs, and pinnable in a test. The seed
+and the draw count are part of the method, not an implementation detail:
+**2,000 draws, seed 20,240,101**, 95% level, in `lib/uncertainty.ts`.
+
+**The weekday/weekend difference** resamples days within each day type — 260
+weekday draws and 104 weekend draws per iteration, with replacement — and
+recomputes the percentage difference of the two means each time. A draw whose
+weekday sample sums to zero has no ratio and is skipped; if more than half the
+draws were skipped the interval is reported as unavailable rather than
+fabricated. With real data this never occurs.
+
+**The top-three board share** resamples complaints, not boards: 9,944 draws from
+the observed board proportions per iteration. The top three are **re-selected on
+every draw**, which matches how the hypothesis was written ("the top three boards
+would account for at least 40%") rather than fixing the three boards that
+happened to win. That makes it a slightly higher and more honest estimate than
+holding BK04, BK01 and BK05 fixed.
+
+Both estimators assume independent resampling units, and both are therefore
+narrower than the truth:
+
+- Daily counts are seasonal and autocorrelated, so resampling days independently
+  understates variance.
+- Complaints cluster within nights and within addresses, so resampling complaints
+  independently understates it considerably. The clustered alternative needs
+  night-level board counts, which are not committed to this repository. As a
+  sense of scale: the complaint-level interval on the top-three share is roughly
+  ±1 point, and it would need to be about ±2 to reach the 40% threshold — a
+  variance inflation of about 4.5, which an intra-night correlation of only about
+  0.02 would produce. That is small enough to be plausible, which is why the
+  piece says the test points below the threshold rather than that it settles it.
+
+### Daylight saving
+
+`created_date` is NYC wall-clock time, so two days a year are not 24 hours long
+and the hourly grid does not adjust for it:
+
+- **2024-03-10**, the spring transition. There is no 02:00 hour. That bucket
+  receives nothing, but the 104-weekend-day denominator is unchanged, so the
+  hour-2 weekend average is diluted by roughly 1/104.
+- **2024-11-03**, the autumn transition. The 01:00 hour occurs twice, so that
+  bucket holds two real hours of complaints for that one day, inflating the
+  hour-1 weekend average by roughly the same amount.
+
+Both fall on a Sunday, so the effect is confined to the weekend series and to two
+of twenty-four hours. It does not touch the daily comparison at all. It is
+disclosed next to the chart it affects rather than corrected, because correcting
+it would mean inventing a value for an hour that did not happen.

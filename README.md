@@ -5,7 +5,7 @@ to 311 — and why that is not the same as where the city is loud.
 
 Built on live NYC Open Data. Every figure in the piece is either recomputed from
 the API on each refresh or derived from data committed to this repository, and
-`analysis/queries.md` says which for every number.
+`METHOD.md` says which for every number.
 
 ## Reading it
 
@@ -65,7 +65,7 @@ components/charts/   hand-rolled SVG, one file per chart
 components/narrative/ one file per act; sections own their copy
 components/ui/       the scroll reveal
 lib/                 analysis, queries, uncertainty, config, static data
-analysis/queries.md  every query and every figure's provenance
+METHOD.md            every query and every figure's provenance
 scripts/             live verification
 legacy/              the Phase 1-3 static build, frozen
 ```
@@ -129,7 +129,7 @@ These are product requirements, not disclaimers, and they are in `SPEC.md`:
 # Analysis history
 
 The piece is the current product. The investigation behind it ran in phases, and
-the record below is kept because the method is the point. `analysis/queries.md`
+the record below is kept because the method is the point. `METHOD.md`
 maps every figure named here to its source, and marks the ones that cannot
 currently be reproduced from committed code.
 
@@ -206,7 +206,7 @@ The dashboard became a sequential piece, and the architecture changed with it.
 Three figures that Phase 2–3 produced but never committed are now recomputed live
 from committed code: the two descriptor decompositions (96.4% and 93.7%) and the
 top-three concentration (38.0%). Nine remain recorded rather than reproducible;
-`analysis/queries.md` lists exactly which.
+`METHOD.md` lists exactly which.
 
 Confidence intervals were added. The top-three concentration test is the
 interesting case: at 38.0% with a 95% interval of roughly 37.0–38.9%, it sits
@@ -218,7 +218,7 @@ night-level data needed to compute the correct, wider interval is not committed.
 
 `SPEC.md` owns product requirements and scope. `README.md` owns explanation,
 method, and this history. `AGENTS.md` tells coding agents how to work here and
-defers to `SPEC.md`. `analysis/queries.md` owns figure provenance. Implementation
+defers to `SPEC.md`. `METHOD.md` owns figure provenance. Implementation
 details live in code and tests.
 
 ## Licence

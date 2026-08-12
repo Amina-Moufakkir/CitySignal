@@ -16,8 +16,8 @@ below is authored.
 ## Source of truth
 
 `SPEC.md` owns product requirements and product scope. When this file and
-`SPEC.md` disagree, `SPEC.md` wins. `README.md` owns the analysis history and
-method. Implementation details live in code and tests.
+`SPEC.md` disagree, `SPEC.md` wins. `README.md` owns the analysis history. `METHOD.md` owns the
+queries, the date handling, the bootstraps and figure provenance. Implementation details live in code and tests.
 
 Read `SPEC.md` before changing anything a reader sees.
 

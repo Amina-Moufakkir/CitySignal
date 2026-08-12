@@ -44,8 +44,15 @@ describe("theme palette", () => {
   });
 
   test("the dark scopes cover every colour the light scope defines", () => {
-    const lightColours = Object.keys(light).filter((name) => name.startsWith("--"));
-    const themed = lightColours.filter((name) => !name.startsWith("--measure") && name !== "--sans" && name !== "--serif");
+    // Colours are identified by their value, not by a list of names to skip.
+    // A denylist silently stops covering anything added later - it missed a new
+    // layout token the first time this ran.
+    const isColour = (value: string) => /^(#|rgba?\(|hsla?\()/.test(value);
+    const themed = Object.entries(light)
+      .filter(([name, value]) => name.startsWith("--") && isColour(value))
+      .map(([name]) => name);
+
+    expect(themed.length).toBeGreaterThan(5);
 
     for (const token of themed) {
       expect(Object.keys(explicitDark), token).toContain(token);
