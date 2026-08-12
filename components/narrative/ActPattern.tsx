@@ -7,12 +7,14 @@ import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DescriptorDumbbell } from "@/components/charts/DescriptorDumbbell";
 import { HourlyLines } from "@/components/charts/HourlyLines";
 import { NightBars } from "@/components/charts/NightBars";
+import { NightGrid } from "@/components/charts/NightGrid";
 import { Boundary, KeyFigure, Secondary, Section, Unavailable } from "./Section";
 import { formatNumber, formatPercentage, hourLabel } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
 import { largestHourlyGap, peakNight } from "@/lib/analysis";
 import type { HourlySummary, NightRow, NightSummary } from "@/lib/analysis";
 import type { DescriptorBundle, Loaded, RangeBundle } from "@/lib/data";
+import type { NightGrid as Grid } from "@/lib/night-grid";
 
 function listWithAnd(items: readonly string[]): string {
   if (items.length <= 1) {
@@ -121,6 +123,54 @@ export function SaturdaySection({ nights }: { nights: Loaded<NightSummary> }) {
           </ChartFigure>
         </>
       )}
+    </Section>
+  );
+}
+
+/**
+ * The question an average cannot answer: is this every week, or a few big nights
+ * dragging the mean up?
+ */
+export function EveryNightSection({ grid }: { grid: Grid | null }) {
+  if (grid === null) {
+    return null;
+  }
+
+  const share = (grid.nightsAboveHalfPeak / grid.nights.length) * 100;
+
+  return (
+    <Section id="everynight" title={`It is not a few big ${grid.weekday}s.`} wide>
+      <p className="lede">
+        An average can be built by a handful of enormous nights. Here is every{" "}
+        {grid.weekday} night in the period instead — {formatNumber(grid.nights.length)} of them, one
+        row each, split into the six hours the night runs.
+      </p>
+
+      <ChartFigure
+        caption={`Complaints per hour on each ${grid.weekday} night, ${grid.range.display}`}
+        table={null}
+        note={
+          <>
+            <span className="note-block">
+              <b className="note-head">The spread.</b> The busiest was {grid.busiest.anchor} at{" "}
+              {formatNumber(grid.busiest.total)} complaints and the quietest {grid.quietest.anchor}{" "}
+              at {formatNumber(grid.quietest.total)}; the median night drew{" "}
+              {formatNumber(grid.medianTotal, 0)}.{" "}
+              {formatNumber(grid.nightsAboveHalfPeak)} of the {formatNumber(grid.nights.length)}{" "}
+              nights — {formatPercentage(share, 0)} — reached at least half the busiest night&rsquo;s
+              total.
+            </span>
+            <span className="note-block">
+              <b className="note-head">What that rules out.</b> A pattern carried by a few outliers
+              would leave most rows near-empty. These rows are not near-empty, so the weekly figure
+              is not an artefact of a handful of nights. It rules that explanation out; it does not
+              explain the pattern.
+            </span>
+          </>
+        }
+      >
+        <NightGrid grid={grid} label={`Brooklyn ${grid.weekday} nights, ${grid.range.display}`} />
+      </ChartFigure>
     </Section>
   );
 }

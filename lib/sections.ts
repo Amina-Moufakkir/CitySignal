@@ -17,6 +17,7 @@ export type SectionId =
   | "reveal"
   | "nights"
   | "saturday"
+  | "everynight"
   | "parties"
   | "where"
   | "persistence"
@@ -69,6 +70,12 @@ export const SECTIONS: readonly SectionMeta[] = [
     id: "saturday",
     eyebrow: "Narrowing further",
     navLabel: "And not every night.",
+    viewportHeight: true,
+  },
+  {
+    id: "everynight",
+    eyebrow: "Not a few nights",
+    navLabel: "Every Saturday, not a few",
     viewportHeight: true,
   },
   {

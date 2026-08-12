@@ -17,6 +17,7 @@ import {
 import {
   DescriptorSection,
   NightsSection,
+  EveryNightSection,
   SaturdaySection,
 } from "@/components/narrative/ActPattern";
 import {
@@ -88,6 +89,7 @@ export default async function Page() {
 
         <Reveal><NightsSection hourly={data.brooklynPrimary.hourly} /></Reveal>
         <Reveal><SaturdaySection nights={data.brooklynPrimary.nights} /></Reveal>
+        <Reveal><EveryNightSection grid={data.brooklynPrimary.nightGrid} /></Reveal>
         <Reveal>
           <DescriptorSection
             bundle={data.descriptorsPrimary}

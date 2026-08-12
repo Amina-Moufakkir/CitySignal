@@ -48,6 +48,7 @@ import {
 } from "./socrata";
 import { bootstrapPercentageDifference, bootstrapTopShare, type IntervalResult } from "./uncertainty";
 import { buildDailySeries, type DailySeries } from "./series";
+import { buildNightGrid, type NightGrid } from "./night-grid";
 
 export type Loaded<T> = { status: "ok"; value: T } | { status: "failed"; failure: Failure };
 
@@ -64,6 +65,11 @@ export type RangeBundle = {
   dailyInterval: IntervalResult;
   hourly: Loaded<HourlySummary>;
   nights: Loaded<NightSummary>;
+  /**
+   * Every night of the peak weekday, hour by hour. Derived from the same hourly
+   * response; the weekday comes from the data, never assumed.
+   */
+  nightGrid: NightGrid | null;
 };
 
 export type DescriptorBundle = {
@@ -121,7 +127,13 @@ async function loadRange(range: Range, borough: Borough): Promise<RangeBundle> {
 
   const dailySeries = dailyResult.ok ? buildDailySeries(range, dailyResult.rows) : null;
 
-  return { range, borough, daily, dailySeries, dailyInterval, hourly, nights };
+  const peak = nights.status === "ok" ? peakNight(nights.value) : { kind: "none" as const };
+  const nightGrid =
+    hourlyResult.ok && peak.kind === "peak"
+      ? buildNightGrid(range, hourlyResult.rows, peak.night.weekday)
+      : null;
+
+  return { range, borough, daily, dailySeries, dailyInterval, hourly, nights, nightGrid };
 }
 
 async function loadDescriptors(

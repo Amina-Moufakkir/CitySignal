@@ -1229,3 +1229,65 @@ body::after {
     display: none;
   }
 }
+
+/* ---------- Heatmap ---------- */
+
+/*
+ * Sequential, not categorical: one hue, light to dark, validated for monotone
+ * lightness, adjacent lightness gap and single hue in both themes. The lightest
+ * step recedes toward the surface, which is correct for a sequential scale - and
+ * a true zero is an empty cell, so "none" and "a few" stay distinguishable.
+ */
+:root {
+  --heat-1: #f6ded0;
+  --heat-2: #eebfa0;
+  --heat-3: #e29b70;
+  --heat-4: #d17544;
+  --heat-5: #c2410c;
+  --heat-6: #96320a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --heat-1: #3a2820;
+    --heat-2: #5d3a24;
+    --heat-3: #87512c;
+    --heat-4: #b06734;
+    --heat-5: #e2703a;
+    --heat-6: #f2996b;
+  }
+}
+
+:root[data-theme="dark"] {
+  --heat-1: #3a2820;
+  --heat-2: #5d3a24;
+  --heat-3: #87512c;
+  --heat-4: #b06734;
+  --heat-5: #e2703a;
+  --heat-6: #f2996b;
+}
+
+.heat-0 {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.heat-1 { fill: var(--heat-1); }
+.heat-2 { fill: var(--heat-2); }
+.heat-3 { fill: var(--heat-3); }
+.heat-4 { fill: var(--heat-4); }
+.heat-5 { fill: var(--heat-5); }
+.heat-6 { fill: var(--heat-6); }
+
+.heat-row-label,
+.heat-total {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.heat-row-label-peak,
+.heat-total-peak {
+  fill: var(--ink);
+  font-weight: 700;
+}
