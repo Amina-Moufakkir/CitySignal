@@ -22,8 +22,7 @@ export type SectionId =
   | "persistence"
   | "failed"
   | "boundaries"
-  | "explore"
-  | "method";
+  | "explore";
 
 export type SectionMeta = {
   id: SectionId;
@@ -103,7 +102,6 @@ export const SECTIONS: readonly SectionMeta[] = [
     viewportHeight: false,
   },
   { id: "explore", eyebrow: "Your turn", navLabel: "Run it yourself", viewportHeight: false },
-  { id: "method", eyebrow: "Method", navLabel: "How this was built", viewportHeight: false },
 ];
 
 const BY_ID = new Map(SECTIONS.map((section) => [section.id, section]));

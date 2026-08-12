@@ -27,7 +27,7 @@ import {
 import {
   BoundariesSection,
   ExploreSection,
-  MethodSection,
+  Colophon,
 } from "@/components/narrative/ActClosing";
 import type { ExploreBorough } from "@/components/narrative/ExploreBoroughs";
 import { ReadingNav } from "@/components/ui/ReadingNav";
@@ -109,8 +109,8 @@ export default async function Page() {
 
         <Reveal><BoundariesSection pageData={data} /></Reveal>
         <Reveal><ExploreSection boroughs={explore} /></Reveal>
-        <Reveal><MethodSection pageData={data} /></Reveal>
       </article>
+      <Colophon pageData={data} />
     </main>
   );
 }

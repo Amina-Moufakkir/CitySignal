@@ -1033,3 +1033,23 @@ code {
 .note-block + .note-block {
   margin-top: 0.85rem;
 }
+
+/* ---------- Colophon ---------- */
+
+/* Not a section: outside the article, out of the running order, out of the nav. */
+.colophon {
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding: 0 0 5rem;
+}
+
+.colophon p {
+  max-width: min(var(--measure), 100%);
+  margin: 0 auto;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}

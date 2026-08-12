@@ -97,33 +97,28 @@ export function ExploreSection({ boroughs }: { boroughs: ExploreBorough[] }) {
   );
 }
 
-export function MethodSection({ pageData }: { pageData: PageData }) {
+/**
+ * A colophon, not a section.
+ *
+ * The method used to be the last stop in the piece. It is now a single line
+ * outside the article: the dataset it rests on, when the live figures were last
+ * pulled, and where the full method lives. Everything technical - the queries,
+ * the date handling, the bootstraps, the daylight-saving arithmetic and the
+ * table naming the source of every figure - is in METHOD.md.
+ *
+ * The attribution stays because a piece built on someone else's public data
+ * should say so on its face, not one link away.
+ */
+export function Colophon({ pageData }: { pageData: PageData }) {
   return (
-    <Section id="method" title="Method">
+    <footer className="colophon">
       <p>
-        Every live figure here comes from NYC Open Data&rsquo;s{" "}
-        <a href={DATASET_PAGE}>311 Service Requests</a> dataset (<code>erm2-nwe9</code>), filtered
-        to <code>complaint_type = &lsquo;Noise - Residential&rsquo;</code>. One record is one
-        service request — not one noise event.
+        Live figures from NYC Open Data,{" "}
+        <a href={DATASET_PAGE}>311 Service Requests</a> (<code>erm2-nwe9</code>), last fetched{" "}
+        {formatTimestamp(pageData.fetchedAt)} and refreshed at most every{" "}
+        {formatNumber(REVALIDATE_SECONDS / 3600)} hours. Full method, queries and figure
+        provenance: <a href={METHOD_URL}>METHOD.md</a>. Code: <a href={REPO_URL}>GitHub</a>.
       </p>
-      <p>
-        Two periods, each 52 complete Monday-to-Sunday weeks, so each holds exactly 260 weekdays
-        and 104 weekend days: {PRIMARY_RANGE.display} and {STRESS_RANGE.display}. They share no
-        days. A night runs 10 PM to 3:59 AM and is credited to the evening it began, which is why
-        Saturday is counted over 52 nights and Sunday over 51.
-      </p>
-      <p>
-        The three queries, the date handling, the bootstrap, the daylight-saving arithmetic and
-        every known limitation are written out in <a href={METHOD_URL}>METHOD.md</a>, alongside a
-        table naming the source of every number in this piece — including the nine that cannot be
-        reproduced from what is committed. The code is at <a href={REPO_URL}>GitHub</a>.
-      </p>
-      <Secondary>
-        Live figures were last fetched from NYC Open Data on{" "}
-        {formatTimestamp(pageData.fetchedAt)}, and refresh at most every{" "}
-        {formatNumber(REVALIDATE_SECONDS / 3600)} hours. The community-board chart is a fixed
-        extract and does not refresh.
-      </Secondary>
-    </Section>
+    </footer>
   );
 }
