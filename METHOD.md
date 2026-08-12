@@ -22,9 +22,10 @@ token is used, so these are subject to Socrata's unauthenticated rate limit.
 
 ### 1. Daily counts
 
-Feeds the weekday/weekend comparison (sections 3, 8, 11) and its bootstrap
-interval. One row per calendar day with at least one complaint; at most 364 rows
-per range, against a 5,000 limit.
+Feeds the daily corpus charts (sections 3 and 4) and the weekday/weekend
+comparison (sections 5, 11 and 14) with its bootstrap interval. One row per
+calendar day with at least one complaint; at most 364 rows per range, against a
+5,000 limit.
 
 ```
 https://data.cityofnewyork.us/resource/erm2-nwe9.json?$select=date_trunc_ymd(created_date)+AS+day,+count(*)+AS+complaints&$where=borough='BROOKLYN'+AND+complaint_type='Noise+-+Residential'+AND+created_date+>=+'2024-01-01T00:00:00'+AND+created_date+<+'2024-12-30T00:00:00'&$group=date_trunc_ymd(created_date)&$order=day&$limit=5000
@@ -38,9 +39,10 @@ Expected row shape — note every value is a string:
 
 ### 2. Hourly counts
 
-Feeds the hour-of-day chart (sections 4, 11) and, from the same response, the
-night-of-week summary (section 5). Fetched once per range and used twice. At
-most 364 × 24 = 8,736 rows, against a 10,000 limit.
+Feeds the hour-of-day chart (sections 6 and 14) and, from the same response, the
+night-of-week summary (section 7) and the night grid (section 8). Fetched once
+per range and used three times. At most 364 × 24 = 8,736 rows, against a 10,000
+limit.
 
 ```
 https://data.cityofnewyork.us/resource/erm2-nwe9.json?$select=date_trunc_ymd(created_date)+AS+day,+date_extract_hh(created_date)+AS+hour,+count(*)+AS+complaints&$where=borough='BROOKLYN'+AND+complaint_type='Noise+-+Residential'+AND+created_date+>=+'2024-01-01T00:00:00'+AND+created_date+<+'2024-12-30T00:00:00'&$group=date_trunc_ymd(created_date),+date_extract_hh(created_date)&$order=day,+hour&$limit=10000
@@ -52,7 +54,7 @@ https://data.cityofnewyork.us/resource/erm2-nwe9.json?$select=date_trunc_ymd(cre
 
 ### 3. Descriptor by night
 
-Feeds the descriptor decomposition (section 6). Grouped by day of week rather
+Feeds the descriptor decomposition (section 9). Grouped by day of week rather
 than calendar day, which is what keeps it to 169 rows instead of roughly 10,900.
 
 ```
@@ -144,32 +146,39 @@ missing or invalid `community_board` were treated.
 
 Every number that appears in the piece or in `README.md`.
 
+`§N` is a position in the running order, which is held as data in
+`lib/sections.ts`. That file is the source of truth for what the piece contains
+and in what order; if a section is added or removed there, these references move
+with it.
+
 **Live** — recomputed from the queries above on every revalidation.
 **Committed** — derived at runtime from data in this repository.
 **Phase 2–3** — recorded from an analysis that is not committed here.
 
 | Figure | Where | Source | How to reproduce |
 | --- | --- | --- | --- |
-| Weekday and weekend daily means | §3, §8, §11 | Live | Query 1 → `summarize` |
-| Weekend difference, primary (~+77.8%) | §3 | Live | Query 1 |
-| Weekend difference, stress (~+76.3%) | §8 | Live | Query 1, stress range |
-| 95% intervals on both | §3, §8 | Live | `bootstrapPercentageDifference`, seeded |
-| Complaint totals and day counts | §3, §8, §10 | Live | Query 1 |
-| Hour-of-day averages, peak hour and gap | §4, §11 | Live | Query 2 → `summarizeHourly` |
-| Complaints per night by night of week | §5 | Live | Query 2 → `summarizeNights` |
-| Peak night (Saturday) | §5 | Live | `peakNight` — derived, not assumed |
-| Nights counted (52 Mon–Sat, 51 Sun) | §5, §12 | Live | `countCompleteNights` |
-| Loud Music/Party share of excess, primary (96.4%) | §6 | Live | Query 3 → `descriptorExcess` |
-| Loud Music/Party share of excess, stress (93.7%) | §6 | Live | Query 3, stress range |
-| Complaints per 1,000 households, all 18 boards | §7 | Committed | `buildBoardRates` |
-| BK04 at 30.6 per 1,000 | §7 | Committed | 1394 / 45491 × 1000 |
-| Top-three share, 38.0% | §7, §9 | Committed | `topBoardShare(3)` |
-| Interval on the top-three share | §9 | Committed | `bootstrapTopShare`, seeded |
-| Density association | §9 | Phase 2–3 | Not reproducible here |
-| Alcohol-licence association | §9 | Phase 2–3 | Not reproducible here |
-| Top-10 BBL share, 10.4% / 8.4% | §9 | Phase 2–3 | Not reproducible here |
-| Single-night location share, 78–81% | §9 | Phase 2–3 | Not reproducible here |
-| Top-three share, stress period, 37.7% | §9 | Phase 2–3 | Not reproducible here |
+| Daily counts in calendar order, spread and median | §3, §4 | Live | Query 1 → `buildDailySeries` |
+| Weekday and weekend daily means | §5, §11, §14 | Live | Query 1 → `summarize` |
+| Weekend difference, primary (~+77.8%) | §5 | Live | Query 1 |
+| Weekend difference, stress (~+76.3%) | §11 | Live | Query 1, stress range |
+| 95% intervals on both | §5, §11 | Live | `bootstrapPercentageDifference`, seeded |
+| Complaint totals and day counts | §5, §11, §13 | Live | Query 1 |
+| Hour-of-day averages, peak hour and gap | §6, §14 | Live | Query 2 → `summarizeHourly` |
+| Complaints per night by night of week | §7 | Live | Query 2 → `summarizeNights` |
+| Peak night (Saturday) | §7, §8, §9 | Live | `peakNight` — derived, not assumed |
+| Nights counted (52 Mon–Sat, 51 Sun) | §7, §8 | Live | `countCompleteNights` |
+| Every peak night hour by hour; busiest, quietest, median | §8 | Live | Query 2 → `buildNightGrid` |
+| Loud Music/Party share of excess, primary (96.4%) | §9 | Live | Query 3 → `descriptorExcess` |
+| Loud Music/Party share of excess, stress (93.7%) | §9 | Live | Query 3, stress range |
+| Complaints per 1,000 households, all 18 boards | §10 | Committed | `buildBoardRates` |
+| BK04 at 30.6 per 1,000 | §10 | Committed | 1394 / 45491 × 1000 |
+| Top-three share, 38.0% | §10, §12 | Committed | `topBoardShare(3)` |
+| Interval on the top-three share | §12 | Committed | `bootstrapTopShare`, seeded |
+| Density association | §12 | Phase 2–3 | Not reproducible here |
+| Alcohol-licence association | §12 | Phase 2–3 | Not reproducible here |
+| Top-10 BBL share, 10.4% / 8.4% | §12 | Phase 2–3 | Not reproducible here |
+| Single-night location share, 78–81% | §12 | Phase 2–3 | Not reproducible here |
+| Top-three share, stress period, 37.7% | §12 | Phase 2–3 | Not reproducible here |
 | Manhattan +60.9%, 2024 | README | Phase 2–3 | Query 1 with `MANHATTAN` gives the current value |
 | Behavioural-evening effect, +127.3% / +126.2% | README | Phase 2–3 | Not reproducible here |
 | Population-normalized sensitivity check | README | Phase 2–3 | Not reproducible here |
@@ -180,7 +189,7 @@ Nine figures above have no committed derivation. They were computed during
 Phases 2 and 3 in analyses that were never added to this repository, and this
 document records that rather than leaving a reader to discover it. Committing the
 night × board grid used in Phase 3 would make two of them reproducible, and would
-additionally allow the section 9 interval to be computed on the correct
+additionally allow the §12 interval to be computed on the correct
 resampling unit — complaints cluster within nights, so the interval currently
 shown is narrower than the data warrants.
 

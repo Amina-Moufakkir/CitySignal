@@ -1,6 +1,6 @@
 /**
- * Sections 4-6: it is not days, it is nights; it is one night; it is one kind
- * of complaint.
+ * Sections 6-9: it is not days, it is nights; it is one night; it is every one
+ * of those nights rather than a few big ones; it is one kind of complaint.
  */
 
 import { ChartFigure } from "@/components/charts/ChartFrame";

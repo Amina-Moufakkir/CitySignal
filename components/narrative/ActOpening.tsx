@@ -1,5 +1,6 @@
 /**
- * Sections 1-3: the reframe, the guess, the reveal.
+ * Sections 1-5: the reframe, the guess, the corpus, the same corpus with the
+ * weekends marked, and the reveal.
  */
 
 import { ChartFigure } from "@/components/charts/ChartFrame";

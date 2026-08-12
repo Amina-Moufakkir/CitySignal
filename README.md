@@ -9,24 +9,33 @@ the API on each refresh or derived from data committed to this repository, and
 
 ## Reading it
 
-The piece runs as twelve sections, one claim each, in order:
+The piece runs as fourteen sections, one claim each, in order. `lib/sections.ts`
+holds the running order as data — the progress bar, the dot rail, the next-links
+and each section's eyebrow all read from it, so this table describes it rather
+than duplicating it:
 
 | # | Section | Claim |
 | --- | --- | --- |
 | 1 | Hook | This measures reporting, not noise |
 | 2 | Guess | The reader commits to a number first |
-| 3 | Reveal | Weekend days run higher than weekdays |
-| 4 | Nights | The difference lives after dark, not across the day |
-| 5 | Saturday | And on one night of the week more than the others |
-| 6 | Parties | And in one kind of report more than the others |
-| 7 | Where | Reporting rates differ across Brooklyn community boards |
-| 8 | Persistence | The same shape appears in a second, non-overlapping year |
-| 9 | Failed explanations | Four pre-registered explanations did not survive |
-| 10 | Boundaries | What this does and does not establish |
-| 11 | Explore | The reader runs the comparison for any borough |
-| 12 | Method | How it was built and how to check it |
+| 3 | Corpus | Every day of the year, before anything is averaged |
+| 4 | Rhythm | The same chart again, with the weekends picked out |
+| 5 | Reveal | Weekend days run higher than weekdays |
+| 6 | Nights | The difference lives after dark, not across the day |
+| 7 | Saturday | And on one night of the week more than the others |
+| 8 | Every night | On every one of those nights, not a few big ones |
+| 9 | Parties | And in one kind of report more than the others |
+| 10 | Where | Reporting rates differ across Brooklyn community boards |
+| 11 | Persistence | The same shape appears in a second, non-overlapping year |
+| 12 | Failed explanations | Four pre-registered explanations did not survive |
+| 13 | Boundaries | What this does and does not establish |
+| 14 | Explore | The reader runs the comparison for any borough |
 
-Section 9 is the centre of the piece. Four candidate explanations were written
+The method is not a section. It lives in `METHOD.md`, reached from a colophon at
+the foot of the page that names the dataset and when the live figures were last
+pulled.
+
+Section 12 is the centre of the piece. Four candidate explanations were written
 down as predictions, each with a number attached, before the data was examined.
 All four came back unsupported. That is presented as the result rather than as a
 gap in it.
@@ -63,7 +72,7 @@ regardless of traffic rather than three per visitor per interaction.
 app/                 page, layout, share image, favicon
 components/charts/   hand-rolled SVG, one file per chart
 components/narrative/ one file per act; sections own their copy
-components/ui/       the scroll reveal
+components/ui/       reading nav, theme toggle, scroll reveal
 lib/                 analysis, queries, uncertainty, config, static data
 METHOD.md            every query and every figure's provenance
 scripts/             live verification

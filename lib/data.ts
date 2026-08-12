@@ -6,9 +6,10 @@
  *   Brooklyn descriptor-by-night for both ranges       2
  *   The other four boroughs, daily and hourly, primary 8
  *
- * The hourly response is fetched once per range and feeds three summaries
- * (hourly, nights, and the night denominators), so sections 4, 5 and 8 cost no
- * extra requests between them.
+ * The hourly response is fetched once per range and feeds the hour-of-day
+ * summary, the night-of-week summary (with its calendar-counted denominators)
+ * and the night grid, so sections 6, 7 and 8 cost no extra requests between
+ * them. Section 9 reuses the peak night derived from the same rows.
  *
  * Every fetch is independent: one failing section does not blank the others.
  *

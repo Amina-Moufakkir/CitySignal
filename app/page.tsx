@@ -1,9 +1,11 @@
 /**
- * The piece. Twelve sections, one claim each, in order.
+ * The piece. Fourteen sections, one claim each, in the order held by
+ * `lib/sections.ts`.
  *
  * Everything is server-rendered and present in the DOM. The only client
- * components are the guess (sections 2-3) and the borough selector (section 11),
- * both of which are enhancements over content that is already complete.
+ * components are the guess (taken in section 2, answered in section 5) and the
+ * borough selector (section 14), both of which are enhancements over content
+ * that is already complete.
  */
 
 import { GuessProvider } from "@/components/narrative/Guess";

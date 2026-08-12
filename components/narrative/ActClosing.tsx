@@ -1,8 +1,9 @@
 /**
- * Sections 10-12: what this establishes, the reader's turn, and the method.
+ * Sections 13-14: what this establishes, and the reader's turn.
  *
- * The method section is not a footer. It is where the piece is checkable, and
- * that is the strongest thing it has.
+ * The piece ends on "Run it yourself". The method is no longer a section of it -
+ * it is in METHOD.md, reached from the colophon below, which sits outside the
+ * article and is not part of the running order.
  */
 
 import { ExploreBoroughs, type ExploreBorough } from "./ExploreBoroughs";

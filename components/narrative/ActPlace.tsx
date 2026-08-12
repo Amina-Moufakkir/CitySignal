@@ -1,7 +1,7 @@
 /**
- * Sections 7-9: where, whether it holds, and the explanations that failed.
+ * Sections 10-12: where, whether it holds, and the explanations that failed.
  *
- * Section 9 is the centrepiece. Each hypothesis states what was predicted before
+ * Section 12 is the centrepiece. Each hypothesis states what was predicted before
  * the data was examined and what came back. Sourcing is a citation line, not a
  * warning: some figures are recomputed here from committed data, some are
  * recorded from Phase 2-3 analyses that live outside this repository.

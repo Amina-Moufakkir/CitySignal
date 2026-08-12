@@ -55,19 +55,28 @@ Descriptor, day-of-week detail, density, nightlife exposure, and repeated-locati
 
 ## Current Supported Capabilities
 
-The CitySignal product surface is a sequential narrative of twelve sections, one
-claim each, presented in order. It supports:
+The CitySignal product surface is a sequential narrative of fourteen sections, one
+claim each, presented in order. The running order is held as data in
+`lib/sections.ts` and is the single source of truth for what the piece contains.
+It supports:
 
+- the unaggregated daily corpus, shown before anything is averaged
 - live weekday/weekend comparison, with a confidence interval
 - live hour-of-day comparison
 - live night-of-week comparison, using a stated night definition and calendar-counted denominators
+- every night of the peak weekday shown individually, rather than only their average, so a reader can see whether the pattern is weekly or carried by outliers
 - live descriptor decomposition of the peak night against a baseline
 - live persistence check across a second, non-overlapping period
 - Brooklyn-only household-normalized community-board comparison, from a static extract
 - a record of pre-registered hypotheses that were not supported, each labelled with its source
 - reader-run borough comparison, from data already computed on the server
 - explicit interpretation boundaries, as their own section rather than as footnotes
-- a method section stating the queries, the handling, and the known limitations
+- a colophon naming the dataset and the last live refresh, linking to the method
+
+The method is not a section of the piece. The queries, the date handling, the
+bootstraps and the figure provenance live in `METHOD.md`. Moving them off the
+page does not weaken the requirement that the work be checkable: `METHOD.md` is
+linked from the colophon and remains a release requirement.
 
 The decision model's five signals map onto this surface as follows. Phases 1-3
 left three of the five unserved; all five are now present:
