@@ -475,8 +475,7 @@ code {
 
 /* Segmented controls. The radio itself is visually hidden but focusable, and
    its label is the visible control, so keyboard behaviour is the browser's. */
-.guess-options,
-.theme-options {
+.guess-options {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -485,13 +484,11 @@ code {
   border: 0;
 }
 
-.guess-option,
-.theme-option {
+.guess-option {
   position: relative;
 }
 
-.guess-option input,
-.theme-option input {
+.guess-option input {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -501,9 +498,10 @@ code {
   cursor: pointer;
 }
 
-.guess-option label,
-.theme-option label {
+.guess-option label {
   display: block;
+  padding: 0.7rem 1.3rem;
+  font-size: 1rem;
   border: 1px solid var(--rule);
   border-radius: 999px;
   background: var(--surface-raised);
@@ -517,30 +515,17 @@ code {
     color 120ms ease;
 }
 
-.guess-option label {
-  padding: 0.7rem 1.3rem;
-  font-size: 1rem;
-}
-
-.theme-option label {
-  padding: 0.32rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-.guess-option input:hover + label,
-.theme-option input:hover + label {
+.guess-option input:hover + label {
   border-color: var(--accent);
 }
 
 /* The ring rides the label, since the input it belongs to is transparent. */
-.guess-option input:focus-visible + label,
-.theme-option input:focus-visible + label {
+.guess-option input:focus-visible + label {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-.guess-option input:checked + label,
-.theme-option input:checked + label {
+.guess-option input:checked + label {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--surface);
@@ -551,37 +536,36 @@ code {
 
 .theme-toggle {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
   max-width: var(--measure-wide);
   margin: 0 auto;
   padding-top: 1.75rem;
 }
 
-.theme-toggle-label {
+/* 36px square: comfortably past the 24px minimum target size, and small enough
+   not to compete with the opening headline. */
+.theme-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-raised);
   color: var(--muted);
-  font-family: var(--sans);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
-.guess-status {
-  margin: 1rem 0 0;
-  color: var(--muted);
-  font-family: var(--sans);
-  font-size: 0.9rem;
+.theme-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.guess-result {
-  max-width: var(--measure);
-  padding-left: 1.1rem;
-  border-left: 2px solid var(--accent);
-  font-family: var(--sans);
-  font-size: 1rem;
-}
 
 /* ---------- Predictions ---------- */
 

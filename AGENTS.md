@@ -117,9 +117,14 @@ palette first, which is the flash the whole arrangement exists to avoid.
 The toggle is a control, not content, so unlike everything else it is absent
 without JavaScript rather than present. A dead button would be worse than none.
 
-Segmented controls use native `<input type="radio">` with a visually hidden input
-and a styled label. `role="radio"` on a button needs a roving tabindex to get
-arrow-key behaviour; native inputs get it for free.
+The toggle is one button that cycles system -> light -> dark. A cycling button
+hides its next state, so its accessible name carries both what is active and what
+pressing will do, and the change is announced through a status node — the icon
+itself is silent.
+
+The guess input is a segmented control and uses native `<input type="radio">`
+with a visually hidden input and a styled label. `role="radio"` on a button needs
+a roving tabindex to get arrow-key behaviour; native inputs get it for free.
 
 ## Content must survive without JavaScript
 
