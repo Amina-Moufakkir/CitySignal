@@ -11,7 +11,45 @@
  * extra requests between them.
  *
  * Every fetch is independent: one failing section does not blank the others.
+ *
+ * Requests are issued a few at a time rather than all at once. Firing all twelve
+ * simultaneously made Socrata throttle, which turned into timeouts, which took
+ * out the hourly response and every section derived from it on a live
+ * deployment. The page degraded rather than broke - which is the point of the
+ * failure types - but a degraded page is still the wrong page, so the call
+ * pattern is the fix rather than a longer timeout alone.
  */
+
+/** How many upstream requests may be in flight at once. */
+const CONCURRENCY = 3;
+
+/**
+ * Aggregate queries over a full year are slow, and slower when the dataset is
+ * busy. This is generous on purpose: a timeout here silently removes a section.
+ */
+const FETCH_OPTIONS = { timeoutMs: 30_000, maxAttempts: 3, retryDelayMs: 2_000 };
+
+/** Runs tasks with a fixed ceiling on concurrency, preserving input order. */
+async function mapLimited<T, R>(
+  items: readonly T[],
+  limit: number,
+  run: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+
+  async function worker(): Promise<void> {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await run(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+
+  return results;
+}
 
 import {
   BASELINE_NIGHTS,
@@ -102,10 +140,11 @@ export const NARRATIVE_DESCRIPTOR = "Loud Music/Party";
 export const BOARD_CONCENTRATION_THRESHOLD = 40;
 
 async function loadRange(range: Range, borough: Borough): Promise<RangeBundle> {
-  const [dailyResult, hourlyResult] = await Promise.all([
-    fetchAggregate(dailyUrl(range, borough)),
-    fetchAggregate(hourlyUrl(range, borough)),
-  ]);
+  const [dailyResult, hourlyResult] = await mapLimited(
+    [dailyUrl(range, borough), hourlyUrl(range, borough)],
+    2,
+    (url) => fetchAggregate(url, FETCH_OPTIONS),
+  );
 
   const daily: Loaded<DaySummary> = dailyResult.ok
     ? { status: "ok", value: summarize(range, dailyResult.rows, borough) }
@@ -141,7 +180,7 @@ async function loadDescriptors(
   borough: Borough,
   nights: Loaded<NightSummary>,
 ): Promise<DescriptorBundle> {
-  const result = await fetchAggregate(descriptorNightUrl(range, borough));
+  const result = await fetchAggregate(descriptorNightUrl(range, borough), FETCH_OPTIONS);
 
   if (!result.ok) {
     return { summary: { status: "failed", failure: result.failure }, excess: { kind: "no-data" } };
@@ -189,16 +228,24 @@ export async function loadPageData(): Promise<PageData> {
     (borough): borough is Borough => borough !== DEFAULT_BOROUGH,
   );
 
-  const [brooklynPrimary, brooklynStress, ...rest] = await Promise.all([
-    loadRange(PRIMARY_RANGE, DEFAULT_BOROUGH),
-    loadRange(STRESS_RANGE, DEFAULT_BOROUGH),
-    ...otherBoroughs.map((borough) => loadRange(PRIMARY_RANGE, borough)),
-  ]);
+  const plan: { range: Range; borough: Borough }[] = [
+    { range: PRIMARY_RANGE, borough: DEFAULT_BOROUGH },
+    { range: STRESS_RANGE, borough: DEFAULT_BOROUGH },
+    ...otherBoroughs.map((borough) => ({ range: PRIMARY_RANGE, borough })),
+  ];
 
-  const [descriptorsPrimary, descriptorsStress] = await Promise.all([
-    loadDescriptors(PRIMARY_RANGE, DEFAULT_BOROUGH, brooklynPrimary.nights),
-    loadDescriptors(STRESS_RANGE, DEFAULT_BOROUGH, brooklynStress.nights),
-  ]);
+  const [brooklynPrimary, brooklynStress, ...rest] = await mapLimited(plan, CONCURRENCY, (entry) =>
+    loadRange(entry.range, entry.borough),
+  );
+
+  const [descriptorsPrimary, descriptorsStress] = await mapLimited(
+    [
+      { range: PRIMARY_RANGE, nights: brooklynPrimary.nights },
+      { range: STRESS_RANGE, nights: brooklynStress.nights },
+    ],
+    2,
+    (entry) => loadDescriptors(entry.range, DEFAULT_BOROUGH, entry.nights),
+  );
 
   return {
     fetchedAt: new Date().toISOString(),
