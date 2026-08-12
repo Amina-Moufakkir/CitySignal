@@ -25,8 +25,10 @@
   --accent-wash: rgba(194, 65, 12, 0.09);
   --de-emphasis: #7d7a74;
 
+  /* ~57 characters at the body size: long enough to read, short enough to scan. */
   --measure: 34rem;
-  --measure-wide: 46rem;
+  --measure-wide: 74rem;
+  --rail-width: 16rem;
 
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
@@ -83,6 +85,15 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Native smooth scroll for the in-page links. Scroll is never driven from JS. */
+  scroll-behavior: smooth;
+  scroll-padding-top: 4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
@@ -102,7 +113,41 @@ main {
 article {
   max-width: var(--measure-wide);
   margin: 0 auto;
-  padding: 5rem 0 8rem;
+  padding: 4rem 0 8rem;
+}
+
+/*
+ * Graphic-primary, as a full-bleed grid.
+ *
+ * A centre column holds the reading measure and everything lands in it by
+ * default; charts opt out and span the whole article. The grid does the
+ * centring rather than auto margins on each child, because any child with its
+ * own `margin` shorthand silently cancels an auto margin - which is exactly what
+ * happened when this was tried the other way.
+ */
+.section {
+  display: grid;
+  grid-template-columns: 1fr min(var(--measure), 100%) 1fr;
+}
+
+.section > * {
+  grid-column: 2;
+}
+
+.section > .chart,
+.section > .small-multiples,
+.section > .predictions,
+.section > .queries,
+.section > .explore {
+  grid-column: 1 / -1;
+}
+
+/* Graphic-led sections claim a viewport, so a chart is never a third of one. */
+@media (min-width: 48rem) {
+  .section-tall {
+    min-height: 100vh;
+    align-content: center;
+  }
 }
 
 /* ---------- Typography ---------- */
@@ -169,6 +214,175 @@ code {
 
 .section {
   padding: 4.5rem 0 0;
+}
+
+/* Detail that belongs under the chart: caveats, method notes, provenance. */
+.secondary {
+  max-width: var(--measure);
+  color: var(--ink-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* The number the section is about, not bold body text. */
+.key-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: var(--measure);
+  margin: 2rem auto;
+}
+
+.key-figure-value {
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.key-figure-caption {
+  color: var(--ink-secondary);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+/* ---------- Next link ---------- */
+
+.next-link {
+  max-width: var(--measure);
+  margin: 3.5rem auto 0;
+}
+
+.next-link a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--ink-secondary);
+}
+
+.next-link a:hover {
+  color: var(--accent);
+}
+
+.next-link-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.next-link-title {
+  font-size: 1.05rem;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 4px;
+}
+
+/* ---------- Progress bar ---------- */
+
+.progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  padding: 0 2px;
+  height: 3px;
+  background: var(--surface);
+}
+
+.progress-segment {
+  flex: 1;
+  background: var(--rule);
+  transition: background-color 220ms ease;
+}
+
+.progress-segment-done {
+  background: var(--accent);
+}
+
+/* ---------- Section rail ---------- */
+
+.rail {
+  position: fixed;
+  top: 50%;
+  right: 1.25rem;
+  z-index: 10;
+  transform: translateY(-50%);
+}
+
+.rail ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  align-items: flex-end;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: none;
+}
+
+.rail a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+  text-decoration: none;
+}
+
+.rail-label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  color: var(--ink-secondary);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    max-width 200ms ease,
+    opacity 200ms ease;
+}
+
+.rail-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--rule);
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.rail-item-active .rail-dot {
+  background: var(--accent);
+  transform: scale(1.45);
+}
+
+.rail a:hover .rail-label,
+.rail a:focus-visible .rail-label,
+.rail-item-active .rail-label {
+  max-width: var(--rail-width);
+  opacity: 1;
+}
+
+.rail a:hover .rail-dot {
+  background: var(--accent);
+}
+
+/* The rail needs room beside the content; below that it is simply not shown. */
+@media (max-width: 64rem) {
+  .rail {
+    display: none;
+  }
 }
 
 .reveal + .reveal {
@@ -277,7 +491,7 @@ code {
 
 .chart-caption {
   max-width: var(--measure);
-  margin-bottom: 0.9rem;
+  margin: 0 auto 0.9rem;
   color: var(--ink-secondary);
   font-family: var(--sans);
   font-size: 0.84rem;
@@ -296,7 +510,7 @@ code {
 
 .chart-note {
   max-width: var(--measure);
-  margin: 1rem 0 0;
+  margin: 1rem auto 0;
   color: var(--ink-secondary);
   font-size: 0.98rem;
   line-height: 1.5;
@@ -306,7 +520,8 @@ code {
   display: grid;
   gap: 2rem;
   grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
-  max-width: 46rem;
+  max-width: 62rem;
+  margin: 0 auto;
 }
 
 .small-multiples .chart {
@@ -719,17 +934,31 @@ code {
   border-radius: 2px;
 }
 
-@media (max-width: 34rem) {
+@media (max-width: 48rem) {
   article {
-    padding: 3rem 0 5rem;
+    padding: 2.5rem 0 5rem;
   }
 
   .section {
     padding-top: 3rem;
   }
 
-  .section + .section {
+  .reveal + .reveal {
     margin-top: 3rem;
+  }
+
+  /* No viewport minimum on mobile: sections take the height they need. */
+  .section-tall {
+    display: block;
+    min-height: 0;
+  }
+
+  .key-figure-value {
+    font-size: clamp(2.6rem, 15vw, 4rem);
+  }
+
+  .chart-svg {
+    max-width: 100% !important;
   }
 }
 

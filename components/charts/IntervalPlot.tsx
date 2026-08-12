@@ -12,7 +12,7 @@ import { formatPercentage } from "@/lib/format";
 import { ChartTable, CHART } from "./ChartFrame";
 import type { IntervalResult } from "@/lib/uncertainty";
 
-const WIDTH = 640;
+const WIDTH = 780;
 const HEIGHT = 128;
 const MARGIN = { top: 30, right: 28, bottom: 42, left: 28 };
 

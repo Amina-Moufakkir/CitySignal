@@ -15,8 +15,8 @@ import { formatNumber } from "@/lib/format";
 import type { DescriptorNightSummary, WeekdayLabel } from "@/lib/analysis";
 import { ChartTable, niceMax, CHART } from "./ChartFrame";
 
-const WIDTH = 640;
-const ROW_HEIGHT = 40;
+const WIDTH = 860;
+const ROW_HEIGHT = 54;
 const MARGIN = { top: 30, right: 64, bottom: 56, left: 132 };
 
 type Row = { descriptor: string; baseline: number; peak: number };

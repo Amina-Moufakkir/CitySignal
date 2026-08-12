@@ -7,7 +7,7 @@ import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DescriptorDumbbell } from "@/components/charts/DescriptorDumbbell";
 import { HourlyLines } from "@/components/charts/HourlyLines";
 import { NightBars } from "@/components/charts/NightBars";
-import { Boundary, Section, Unavailable } from "./Section";
+import { Boundary, KeyFigure, Secondary, Section, Unavailable } from "./Section";
 import { formatNumber, formatPercentage, hourLabel } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
 import { largestHourlyGap, peakNight } from "@/lib/analysis";
@@ -25,7 +25,7 @@ function listWithAnd(items: readonly string[]): string {
 export function NightsSection({ hourly }: { hourly: Loaded<HourlySummary> }) {
   if (hourly.status === "failed") {
     return (
-      <Section id="nights" eyebrow="Narrowing" title="It is not days. It is nights.">
+      <Section id="nights" title="It is not days. It is nights.">
         <Unavailable>{describeFailure(hourly.failure)}</Unavailable>
       </Section>
     );
@@ -35,7 +35,7 @@ export function NightsSection({ hourly }: { hourly: Loaded<HourlySummary> }) {
   const peak = largestHourlyGap(summary);
 
   return (
-    <Section id="nights" eyebrow="Narrowing" title="It is not days. It is nights." wide>
+    <Section id="nights" title="It is not days. It is nights." wide>
       <p>
         A daily average hides where the difference sits. Split the same complaints by the hour they
         were filed and the weekend line tracks the weekday line for most of the day, then leaves it
@@ -65,12 +65,12 @@ export function NightsSection({ hourly }: { hourly: Loaded<HourlySummary> }) {
         />
       </ChartFigure>
 
-      <p>
+      <Secondary>
         Hours come from the timestamp on the report, which NYC records in local time. Two days a
         year that clock is not 24 hours long — the March and November daylight-saving changes — and
         those two days are counted as if they were. The effect is about a percent on two of the
-        twenty-four bars, and it is left in rather than quietly patched.
-      </p>
+        twenty-four hours, and it is left in rather than quietly patched.
+      </Secondary>
     </Section>
   );
 }
@@ -78,7 +78,7 @@ export function NightsSection({ hourly }: { hourly: Loaded<HourlySummary> }) {
 export function SaturdaySection({ nights }: { nights: Loaded<NightSummary> }) {
   if (nights.status === "failed") {
     return (
-      <Section id="saturday" eyebrow="Narrowing further" title="And not every night.">
+      <Section id="saturday" title="And not every night.">
         <Unavailable>{describeFailure(nights.failure)}</Unavailable>
       </Section>
     );
@@ -88,22 +88,20 @@ export function SaturdaySection({ nights }: { nights: Loaded<NightSummary> }) {
   const peak = peakNight(summary);
 
   return (
-    <Section id="saturday" eyebrow="Narrowing further" title="And not every night." wide>
-      <p>
+    <Section id="saturday" title="And not every night." wide>
+      <p className="lede">
         If the difference lives after dark, a night is the natural unit — and a night does not stop
-        at midnight. Counting 10 PM to 3:59 AM as one night, and giving those small hours to the
-        evening they belong to, separates the seven nights of the week.
+        at midnight. Counting 10 PM to 3:59 AM as one night separates the seven nights of the week.
       </p>
 
       {peak.kind === "none" ? (
         <p>No night stands out in this period.</p>
       ) : (
         <>
-          <p className="lede">
-            <strong>{peak.night.weekday}</strong> night runs highest, at{" "}
-            {formatNumber(peak.night.average, 1)} complaints per night across{" "}
-            {peak.night.nightsCounted} nights.
-          </p>
+          <KeyFigure value={formatNumber(peak.night.average, 1)}>
+            complaints on an average {peak.night.weekday} night — the highest of the seven, across{" "}
+            {peak.night.nightsCounted} nights
+          </KeyFigure>
 
           <ChartFigure
             caption={`Complaints per night by night of week, ${summary.range.display}`}
@@ -140,7 +138,7 @@ export function DescriptorSection({
 
   if (summary.status === "failed") {
     return (
-      <Section id="parties" eyebrow="The last cut" title="And not every kind of noise.">
+      <Section id="parties" title="And not every kind of noise.">
         <Unavailable>{describeFailure(summary.failure)}</Unavailable>
       </Section>
     );
@@ -148,7 +146,7 @@ export function DescriptorSection({
 
   if (excess.kind === "no-data") {
     return (
-      <Section id="parties" eyebrow="The last cut" title="And not every kind of noise.">
+      <Section id="parties" title="And not every kind of noise.">
         <p>The descriptor breakdown is not available for this period.</p>
       </Section>
     );
@@ -156,7 +154,7 @@ export function DescriptorSection({
 
   if (excess.kind === "no-excess") {
     return (
-      <Section id="parties" eyebrow="The last cut" title="And not every kind of noise.">
+      <Section id="parties" title="And not every kind of noise.">
         <p>
           The peak night does not run above the {listWithAnd(["Monday", "Thursday"])} baseline in
           this period, so there is no excess to attribute to any one kind of report.
@@ -166,18 +164,20 @@ export function DescriptorSection({
   }
 
   return (
-    <Section id="parties" eyebrow="The last cut" title="And not every kind of noise." wide>
+    <Section id="parties" title="And not every kind of noise." wide>
       <p>
         311 asks what the noise was. Comparing {excess.peakWeekday} nights against the{" "}
         {listWithAnd(excess.baselineWeekdays)} baseline, one answer moves and the others barely do.
       </p>
 
       <p className="lede">
-        {excess.peakWeekday} nights run{" "}
-        <strong>{formatNumber(excess.excessPerNight, 1)}</strong> complaints above the baseline.{" "}
-        <strong>{excess.descriptor}</strong> accounts for{" "}
-        <strong>{formatPercentage(excess.shareOfExcess)}</strong> of that.
+        {excess.peakWeekday} nights run {formatNumber(excess.excessPerNight, 1)} complaints above
+        the {listWithAnd(excess.baselineWeekdays)} baseline. Almost all of that is one answer.
       </p>
+
+      <KeyFigure value={formatPercentage(excess.shareOfExcess)}>
+        of the {excess.peakWeekday}-night excess is {excess.descriptor}
+      </KeyFigure>
 
       <ChartFigure
         caption={`Complaints per night by kind of report, ${summary.value.range.display}`}
@@ -202,10 +202,10 @@ export function DescriptorSection({
       </ChartFigure>
 
       {bundleStress.excess.kind === "computed" && (
-        <p className="interval">
+        <Secondary>
           The same calculation over a different year returns{" "}
           {formatPercentage(bundleStress.excess.shareOfExcess)}.
-        </p>
+        </Secondary>
       )}
 
       <Boundary>

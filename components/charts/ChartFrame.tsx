@@ -53,34 +53,39 @@ export function ChartTable({
   columns: string[];
   rows: (string | number)[][];
 }) {
+  // The table is wrapped rather than hidden directly: a table ignores the 1px
+  // width the visually-hidden recipe sets and lays out at its natural size, which
+  // pushed the whole page into horizontal scroll. A div respects it.
   return (
-    <table className="visually-hidden">
-      <caption>{summary}</caption>
-      <thead>
-        <tr>
-          {columns.map((column) => (
-            <th key={column} scope="col">
-              {column}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, index) => (
-          <tr key={index}>
-            {row.map((cell, cellIndex) =>
-              cellIndex === 0 ? (
-                <th key={cellIndex} scope="row">
-                  {cell}
-                </th>
-              ) : (
-                <td key={cellIndex}>{cell}</td>
-              ),
-            )}
+    <div className="visually-hidden">
+      <table>
+        <caption>{summary}</caption>
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th key={column} scope="col">
+                {column}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index}>
+              {row.map((cell, cellIndex) =>
+                cellIndex === 0 ? (
+                  <th key={cellIndex} scope="row">
+                    {cell}
+                  </th>
+                ) : (
+                  <td key={cellIndex}>{cell}</td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

@@ -12,8 +12,8 @@ import { formatNumber } from "@/lib/format";
 import type { NightSummary, PeakNight } from "@/lib/analysis";
 import { ChartTable, niceMax, roundedBarPath, CHART } from "./ChartFrame";
 
-const WIDTH = 640;
-const ROW_HEIGHT = 34;
+const WIDTH = 860;
+const ROW_HEIGHT = 46;
 const MARGIN = { top: 12, right: 70, bottom: 52, left: 92 };
 
 export function NightBars({ summary, peak }: { summary: NightSummary; peak: PeakNight }) {

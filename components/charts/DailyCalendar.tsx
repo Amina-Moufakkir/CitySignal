@@ -26,9 +26,9 @@ import type { Anchor, DailySeries } from "@/lib/series";
 import { weekdayName } from "@/lib/series";
 import { ChartTable, niceMax } from "./ChartFrame";
 
-const WIDTH = 960;
-const HEIGHT = 408;
-const MARGIN = { top: 124, right: 20, bottom: 46, left: 54 };
+const WIDTH = 1180;
+const HEIGHT = 520;
+const MARGIN = { top: 132, right: 24, bottom: 52, left: 60 };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

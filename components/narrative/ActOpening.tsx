@@ -5,7 +5,7 @@
 import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DailyCalendar } from "@/components/charts/DailyCalendar";
 import { GuessAwareColumns, GuessComparison, GuessInput } from "./Guess";
-import { Boundary, Section, Unavailable } from "./Section";
+import { Boundary, KeyFigure, Secondary, Section, Unavailable } from "./Section";
 import { formatNumber, formatPercentage, formatSignedPercentage } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
 import { pickAnchors, weekdayName } from "@/lib/series";
@@ -13,7 +13,7 @@ import type { RangeBundle } from "@/lib/data";
 
 export function HookSection() {
   return (
-    <Section id="hook" eyebrow="CitySignal" title="Where is New York loud?" lead>
+    <Section id="hook" title="Where is New York loud?" lead>
       <p className="lede">
         There is a whole genre of answer to that question. Rankings of the city&rsquo;s noisiest
         neighbourhoods. Apartment-hunting guides that score a block on how quiet it is. Maps that
@@ -51,7 +51,7 @@ export function GuessSection({ bundle }: { bundle: RangeBundle }) {
     summary && summary.comparison.kind === "computed" ? summary.comparison.weekdayAverage : null;
 
   return (
-    <Section id="guess" eyebrow="Before the answer" title="How much more, on a weekend?">
+    <Section id="guess" title="How much more, on a weekend?">
       <p>
         Take the average number of residential noise complaints Brooklyn files on a weekday. Now
         take the average for a weekend day. How much bigger is the second number?
@@ -69,7 +69,7 @@ export function CorpusSection({ bundle }: { bundle: RangeBundle }) {
 
   if (dailySeries === null) {
     return (
-      <Section id="corpus" eyebrow="The raw material" title="Every day of the year">
+      <Section id="corpus" title="Every day of the year">
         <Unavailable>
           {daily.status === "failed" ? describeFailure(daily.failure) : "Not available."}
         </Unavailable>
@@ -82,7 +82,7 @@ export function CorpusSection({ bundle }: { bundle: RangeBundle }) {
   const weekdayMultiple = weekdayMean === 0 ? null : maxWeekday.complaints / weekdayMean;
 
   return (
-    <Section id="corpus" eyebrow="The raw material" title="Every day of the year" wide>
+    <Section id="corpus" title="Every day of the year" wide>
       <p className="lede">
         Each bar is one day in Brooklyn in {range.start.slice(0, 4)}. Nothing is averaged, sorted or
         filtered — this is all {formatNumber(dailySeries.days.length)} days, in order.
@@ -140,7 +140,7 @@ export function RhythmSection({ bundle }: { bundle: RangeBundle }) {
       : ((dailySeries.weekendMean - dailySeries.weekdayMean) / dailySeries.weekdayMean) * 100;
 
   return (
-    <Section id="rhythm" eyebrow="The same chart" title="Now colour the weekends" wide>
+    <Section id="rhythm" title="Now colour the weekends" wide>
       <p className="lede">
         Nothing has been recalculated. The same {formatNumber(dailySeries.days.length)} bars, with
         Saturdays and Sundays picked out.
@@ -175,7 +175,7 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
 
   if (daily.status === "failed") {
     return (
-      <Section id="reveal" eyebrow="The answer" title="Weekends run higher">
+      <Section id="reveal" title="Weekends run higher">
         <Unavailable>{describeFailure(daily.failure)}</Unavailable>
       </Section>
     );
@@ -186,7 +186,7 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
 
   if (comparison.kind === "no-data") {
     return (
-      <Section id="reveal" eyebrow="The answer" title="No comparison available">
+      <Section id="reveal" title="No comparison available">
         <p>
           NYC Open Data returned no residential noise complaints for {range.display}. There is
           nothing to compare, so nothing is shown.
@@ -197,7 +197,7 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
 
   if (comparison.kind === "zero-baseline") {
     return (
-      <Section id="reveal" eyebrow="The answer" title="No weekday baseline">
+      <Section id="reveal" title="No weekday baseline">
         <p>
           Weekend days averaged {formatNumber(comparison.weekendAverage, 1)} complaints across{" "}
           {range.display}, but weekdays recorded none at all. There is no baseline to express a
@@ -217,7 +217,6 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
   return (
     <Section
       id="reveal"
-      eyebrow="The answer"
       title={
         comparison.direction === "level"
           ? "Weekends and weekdays run level"
@@ -225,12 +224,15 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
       }
     >
       <p className="lede">
-        Across {range.display}, Brooklyn averaged{" "}
-        <strong>{formatNumber(comparison.weekendAverage, 1)}</strong> residential noise complaints
-        on a weekend day against <strong>{formatNumber(comparison.weekdayAverage, 1)}</strong> on a
-        weekday — {formatSignedPercentage(comparison.percentageDifference)}, {direction} the
-        weekday baseline.
+        Averaged out, a weekend day in Brooklyn drew{" "}
+        {formatNumber(comparison.weekendAverage, 1)} residential noise complaints against{" "}
+        {formatNumber(comparison.weekdayAverage, 1)} on a weekday.
       </p>
+
+      <KeyFigure value={formatSignedPercentage(comparison.percentageDifference)}>
+        {direction === "the same as" ? "no difference between" : `${direction}`} the weekday
+        baseline, across {range.display}
+      </KeyFigure>
 
       <GuessComparison actual={comparison.percentageDifference} />
 
@@ -258,12 +260,11 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
       </ChartFigure>
 
       {dailyInterval.kind === "interval" && (
-        <p className="interval">
-          Resampling days gives a 95% interval of{" "}
-          {formatSignedPercentage(dailyInterval.lower)} to{" "}
+        <Secondary>
+          Resampling days gives a 95% interval of {formatSignedPercentage(dailyInterval.lower)} to{" "}
           {formatSignedPercentage(dailyInterval.upper)}. Daily counts are seasonal and
           autocorrelated, so the real interval is wider than that.
-        </p>
+        </Secondary>
       )}
 
       <Boundary>

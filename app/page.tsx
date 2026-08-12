@@ -30,6 +30,7 @@ import {
   MethodSection,
 } from "@/components/narrative/ActClosing";
 import type { ExploreBorough } from "@/components/narrative/ExploreBoroughs";
+import { ReadingNav } from "@/components/ui/ReadingNav";
 import { Reveal } from "@/components/ui/Reveal";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { largestHourlyGap } from "@/lib/analysis";
@@ -74,6 +75,7 @@ export default async function Page() {
 
   return (
     <main id="main">
+      <ReadingNav />
       <ThemeToggle />
       <article>
         <GuessProvider>

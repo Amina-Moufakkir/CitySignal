@@ -27,7 +27,7 @@ export function BoundariesSection({ pageData }: { pageData: PageData }) {
       : 0);
 
   return (
-    <Section id="boundaries" eyebrow="The fine print, promoted" title="What this does and does not establish">
+    <Section id="boundaries" title="What this does and does not establish">
       <p>
         {formatNumber(total)} complaints across two years support a narrow set of claims. It is
         worth being exact about which.
@@ -86,7 +86,7 @@ export function BoundariesSection({ pageData }: { pageData: PageData }) {
 
 export function ExploreSection({ boroughs }: { boroughs: ExploreBorough[] }) {
   return (
-    <Section id="explore" eyebrow="Your turn" title="Run it yourself" wide>
+    <Section id="explore" title="Run it yourself" wide>
       <p>
         The same two comparisons, for any borough. Everything here was computed when the page was
         built, so changing the selection queries nothing.
@@ -100,7 +100,7 @@ export function MethodSection({ pageData }: { pageData: PageData }) {
   const metadata = PHASE3_BOARD_DATASET.metadata;
 
   return (
-    <Section id="method" eyebrow="Method" title="How this was built, and how to check it" wide>
+    <Section id="method" title="How this was built, and how to check it" wide>
       <h3>Source</h3>
       <p>
         NYC Open Data,{" "}

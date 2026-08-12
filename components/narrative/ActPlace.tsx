@@ -11,7 +11,7 @@ import { BoardBars } from "@/components/charts/BoardBars";
 import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DayTypeColumns } from "@/components/charts/DayTypeColumns";
 import { IntervalPlot } from "@/components/charts/IntervalPlot";
-import { Boundary, Section, SourceLine, Unavailable } from "./Section";
+import { Boundary, KeyFigure, Section, SourceLine, Unavailable } from "./Section";
 import { formatNumber, formatPercentage, formatSignedPercentage } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
 import { comparedToThreshold } from "@/lib/uncertainty";
@@ -50,7 +50,7 @@ export function WhereSection({
   const shortfall = liveTotal === null ? null : liveTotal - boardShare.total;
 
   return (
-    <Section id="where" eyebrow="The obvious next question" title="So where?" wide>
+    <Section id="where" title="So where?" wide>
       <p>
         A late-night, Saturday, loud-music pattern sounds like it should have an address. The
         honest version of that question is narrower: are some parts of Brooklyn reporting this more
@@ -60,6 +60,11 @@ export function WhereSection({
         Raw counts cannot answer it — a board with twice the households will file more of
         everything. Dividing by occupied households puts eighteen boards on one scale.
       </p>
+
+      <KeyFigure value={formatNumber(top.complaintsPer1000Households, 1)}>
+        Saturday-night complaints per 1,000 occupied households in {top.board}, against{" "}
+        {formatNumber(bottom.complaintsPer1000Households, 1)} in {bottom.board}
+      </KeyFigure>
 
       <ChartFigure
         caption="Saturday-night complaints per 1,000 occupied households, by community board"
@@ -122,7 +127,7 @@ export function PersistenceSection({
       primary.daily.status === "failed" ? primary.daily.failure : stress.daily.status === "failed" ? stress.daily.failure : null;
 
     return (
-      <Section id="persistence" eyebrow="Does it hold?" title="A different year, same shape">
+      <Section id="persistence" title="A different year, same shape">
         <Unavailable>{failure ? describeFailure(failure) : "Not available."}</Unavailable>
       </Section>
     );
@@ -133,14 +138,14 @@ export function PersistenceSection({
 
   if (a.comparison.kind !== "computed" || b.comparison.kind !== "computed") {
     return (
-      <Section id="persistence" eyebrow="Does it hold?" title="A different year, same shape">
+      <Section id="persistence" title="A different year, same shape">
         <p>One of the two periods has no comparable data, so no persistence check is shown.</p>
       </Section>
     );
   }
 
   return (
-    <Section id="persistence" eyebrow="Does it hold?" title="A different year, same shape" wide>
+    <Section id="persistence" title="A different year, same shape" wide>
       <p>
         A pattern found once in one year is a pattern found once. The same query over a second
         period that shares no days with the first is the cheapest test of whether it was a feature
@@ -203,7 +208,6 @@ export function FailedExplanationsSection({ pageData }: { pageData: PageData }) 
   return (
     <Section
       id="failed"
-      eyebrow="Four predictions"
       title="Then the explanations ran out."
       wide
     >

@@ -15,8 +15,8 @@ import { formatNumber } from "@/lib/format";
 import type { BoardRate } from "@/lib/analysis";
 import { ChartTable, niceMax, roundedBarPath, CHART } from "./ChartFrame";
 
-const WIDTH = 640;
-const ROW_HEIGHT = 26;
+const WIDTH = 860;
+const ROW_HEIGHT = 32;
 const MARGIN = { top: 12, right: 62, bottom: 58, left: 60 };
 const LABELLED = 3;
 

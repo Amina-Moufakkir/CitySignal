@@ -16,8 +16,8 @@ import { ChartTable, niceMax, roundedBarPath, CHART } from "./ChartFrame";
 // Sized so one viewBox unit renders as one CSS pixel, which is what makes the
 // 24px bar cap in the mark spec actually 24px on screen. Two categories, so the
 // canvas stays small and the bars keep their air rather than filling the band.
-const WIDTH = 430;
-const HEIGHT = 280;
+const WIDTH = 560;
+const HEIGHT = 420;
 const MARGIN = { top: 34, right: 24, bottom: 48, left: 52 };
 
 export function DayTypeColumns({
