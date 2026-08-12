@@ -4,10 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CitySignal</title>
+    <!-- This build is kept as a record, not as the live product. The canonical
+         URL points at the current version so this page does not outrank it. -->
+    <link rel="canonical" href="https://citysignal-two.vercel.app" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="page-shell">
+      <!-- Styled inline from the tokens in styles.css rather than by adding a
+           rule to it: this branch is frozen, and index.html is the only file on
+           it that differs from the build it preserves. -->
+      <p
+        style="
+          margin: 0 0 28px;
+          padding: 14px 18px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--warn-soft);
+          color: var(--warn);
+          max-width: 820px;
+          line-height: 1.55;
+        "
+      >
+        This is the original static version of CitySignal, kept unchanged as a record of where
+        the project started. The current version is a narrative piece at
+        <a href="https://citysignal-two.vercel.app" style="color: inherit">citysignal-two.vercel.app</a>.
+      </p>
+
       <section class="intro">
         <p class="eyebrow">CitySignal</p>
         <h1>NYC's weekend noise-complaint pattern gets much sharper after dark.</h1>
