@@ -201,6 +201,12 @@ export type DaySummary = {
   weekendTotal: number;
   totalComplaints: number;
   comparison: Comparison;
+  /**
+   * Per-day counts in calendar order, kept so uncertainty can be estimated by
+   * resampling days. Server-side only; the page ships the interval, not these.
+   */
+  weekdayCounts: number[];
+  weekendCounts: number[];
   rejectedRows: number;
   zeroDaysFilled: number;
 };
@@ -251,8 +257,8 @@ export function summarize(
 ): DaySummary {
   const { countsByDay, rejectedRows } = normalizeDailyRows(dailyRows, range);
 
-  let weekdayDays = 0;
-  let weekendDays = 0;
+  const weekdayCounts: number[] = [];
+  const weekendCounts: number[] = [];
   let weekdayTotal = 0;
   let weekendTotal = 0;
   let zeroDaysFilled = 0;
@@ -270,13 +276,16 @@ export function summarize(
     }
 
     if (isWeekendDay(date)) {
-      weekendDays += 1;
+      weekendCounts.push(complaints);
       weekendTotal += complaints;
     } else {
-      weekdayDays += 1;
+      weekdayCounts.push(complaints);
       weekdayTotal += complaints;
     }
   }
+
+  const weekdayDays = weekdayCounts.length;
+  const weekendDays = weekendCounts.length;
 
   return {
     range,
@@ -287,6 +296,8 @@ export function summarize(
     weekendTotal,
     totalComplaints: weekdayTotal + weekendTotal,
     comparison: buildComparison(weekdayTotal, weekendTotal, weekdayDays, weekendDays),
+    weekdayCounts,
+    weekendCounts,
     rejectedRows,
     zeroDaysFilled,
   };
@@ -445,6 +456,24 @@ export function nightOf(day: string, hour: number): string | null {
   return isoDay(previousUtcDay(utcDateFromDay(day)));
 }
 
+/**
+ * The day-of-week an anchor falls on, given the day-of-week and hour of the
+ * complaint. The dow-level counterpart of `nightOf`, for aggregates that are
+ * grouped by day of week rather than by calendar day. `analysis.test.ts` pins
+ * the two against each other so they cannot drift apart.
+ */
+export function nightAnchorDow(dow: number, hour: number): number | null {
+  if (!Number.isInteger(dow) || dow < 0 || dow > 6) {
+    return null;
+  }
+
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23 || !isNightHour(hour)) {
+    return null;
+  }
+
+  return hour >= NIGHT_START_HOUR ? dow : (dow + 6) % 7;
+}
+
 export const WEEKDAY_LABELS = [
   "Monday",
   "Tuesday",
@@ -455,13 +484,62 @@ export const WEEKDAY_LABELS = [
   "Sunday",
 ] as const;
 
+export type WeekdayLabel = (typeof WEEKDAY_LABELS)[number];
+
+/** The four nights the Phase 2 hypothesis used as its comparison baseline. */
+export const BASELINE_NIGHTS: readonly WeekdayLabel[] = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+];
+
 /** Monday-first index, so a Monday-Sunday range reads in order. */
 function mondayIndex(utcDay: number): number {
   return (utcDay + 6) % 7;
 }
 
+export type CompleteNights = {
+  /** Complete nights per Monday-first weekday index. */
+  countsByWeekday: number[];
+  /** Anchors whose night is only half inside the range. */
+  droppedNights: string[];
+  /** The anchors that were counted, for calendar-day attribution. */
+  anchors: Set<string>;
+};
+
+/**
+ * A night counts only when both of its halves fall inside the range. Counted by
+ * walking the calendar, exactly as the daily and hourly denominators are, so no
+ * caller has to assume a uniform 52.
+ */
+export function countCompleteNights(range: Range): CompleteNights {
+  const countsByWeekday = new Array<number>(7).fill(0);
+  const anchors = new Set<string>();
+  // The night anchored the day before the range always loses its evening half.
+  const droppedNights: string[] = [isoDay(previousUtcDay(utcDateFromDay(range.start)))];
+
+  for (
+    const date = utcDateFromDay(range.start), end = utcDateFromDay(range.endExclusive);
+    date < end;
+    addUtcDay(date)
+  ) {
+    const anchor = isoDay(date);
+
+    if (isoDay(nextUtcDay(date)) >= range.endExclusive) {
+      droppedNights.push(anchor);
+      continue;
+    }
+
+    anchors.add(anchor);
+    countsByWeekday[mondayIndex(date.getUTCDay())] += 1;
+  }
+
+  return { countsByWeekday, droppedNights, anchors };
+}
+
 export type NightRow = {
-  weekday: string;
+  weekday: WeekdayLabel;
   nightsCounted: number;
   total: number;
   average: number;
@@ -489,32 +567,12 @@ export function summarizeNights(
   borough: Borough = DEFAULT_BOROUGH,
 ): NightSummary {
   const { countsByDayHour, rejectedRows } = normalizeHourlyRows(hourlyRows, range);
-  const nightsCounted = new Array<number>(7).fill(0);
+  const {
+    countsByWeekday: nightsCounted,
+    droppedNights,
+    anchors: completeNights,
+  } = countCompleteNights(range);
   const totals = new Array<number>(7).fill(0);
-  const completeNights = new Set<string>();
-  const droppedNights: string[] = [];
-
-  // The night anchored the day before the range always loses its evening half.
-  droppedNights.push(isoDay(previousUtcDay(utcDateFromDay(range.start))));
-
-  // Denominators come from the calendar, exactly as the daily and hourly
-  // summaries do. A night counts only when both of its halves are in range.
-  for (
-    const date = utcDateFromDay(range.start), end = utcDateFromDay(range.endExclusive);
-    date < end;
-    addUtcDay(date)
-  ) {
-    const anchor = isoDay(date);
-    const morning = isoDay(nextUtcDay(date));
-
-    if (morning >= range.endExclusive) {
-      droppedNights.push(anchor);
-      continue;
-    }
-
-    completeNights.add(anchor);
-    nightsCounted[mondayIndex(date.getUTCDay())] += 1;
-  }
 
   for (const [key, complaints] of countsByDayHour) {
     const separator = key.indexOf("|");
@@ -562,6 +620,206 @@ export function peakNight(summary: NightSummary): PeakNight {
   }
 
   return best;
+}
+
+// ---------------------------------------------------------------------------
+// Descriptors by night.
+// ---------------------------------------------------------------------------
+
+export type DescriptorNightRow = {
+  weekday: WeekdayLabel;
+  nightsCounted: number;
+  total: number;
+  /** Complaints per night, by descriptor. */
+  byDescriptor: Record<string, number>;
+};
+
+export type DescriptorNightSummary = {
+  range: Range;
+  borough: Borough;
+  weekdays: DescriptorNightRow[];
+  /** Descriptors present, ordered by total complaints descending. */
+  descriptors: string[];
+  totalComplaints: number;
+  hasData: boolean;
+  rejectedRows: number;
+};
+
+/**
+ * Descriptor counts attributed to nights, from rows grouped by day of week.
+ *
+ * Denominators still come from `countCompleteNights`, so a weekday whose nights
+ * are incomplete is divided by the right number. The two incomplete boundary
+ * nights cannot be excluded from dow-grouped totals, which is why this summary
+ * is only used for the peak-versus-baseline comparison: in both configured
+ * ranges those two nights are Sunday nights, and neither the peak nor the
+ * baseline is Sunday. `analysis.test.ts` asserts that.
+ */
+export function summarizeDescriptorNights(
+  range: Range,
+  rows: readonly MaybeRow[],
+  borough: Borough = DEFAULT_BOROUGH,
+): DescriptorNightSummary {
+  const { countsByWeekday } = countCompleteNights(range);
+  const totalsByWeekday = new Array<number>(7).fill(0);
+  const byWeekday: Record<string, number>[] = Array.from({ length: 7 }, () => ({}));
+  const descriptorTotals = new Map<string, number>();
+  let rejectedRows = 0;
+
+  for (const row of rows) {
+    const descriptorValue = row?.descriptor;
+    const dowValue = row?.dow;
+    const hourValue = row?.hour;
+    const complaintValue = row?.complaints;
+
+    const descriptor = typeof descriptorValue === "string" ? descriptorValue.trim() : "";
+    const dow = Number(dowValue);
+    const hour = Number(hourValue);
+    const complaints = Number(complaintValue);
+
+    if (
+      !row ||
+      descriptor === "" ||
+      dowValue === undefined ||
+      dowValue === null ||
+      dowValue === "" ||
+      hourValue === undefined ||
+      hourValue === null ||
+      hourValue === "" ||
+      complaintValue === undefined ||
+      complaintValue === null ||
+      complaintValue === "" ||
+      !Number.isInteger(complaints) ||
+      complaints < 0
+    ) {
+      rejectedRows += 1;
+      continue;
+    }
+
+    const anchorDow = nightAnchorDow(dow, hour);
+
+    if (anchorDow === null) {
+      rejectedRows += 1;
+      continue;
+    }
+
+    const index = mondayIndex(anchorDow);
+
+    totalsByWeekday[index] += complaints;
+    byWeekday[index][descriptor] = (byWeekday[index][descriptor] ?? 0) + complaints;
+    descriptorTotals.set(descriptor, (descriptorTotals.get(descriptor) ?? 0) + complaints);
+  }
+
+  const weekdays: DescriptorNightRow[] = WEEKDAY_LABELS.map((weekday, index) => ({
+    weekday,
+    nightsCounted: countsByWeekday[index],
+    total: totalsByWeekday[index],
+    byDescriptor: byWeekday[index],
+  }));
+
+  const totalComplaints = totalsByWeekday.reduce((sum, value) => sum + value, 0);
+
+  return {
+    range,
+    borough,
+    weekdays,
+    descriptors: [...descriptorTotals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([descriptor]) => descriptor),
+    totalComplaints,
+    hasData: totalComplaints > 0,
+    rejectedRows,
+  };
+}
+
+export type DescriptorExcess =
+  | {
+      kind: "computed";
+      descriptor: string;
+      peakWeekday: WeekdayLabel;
+      baselineWeekdays: WeekdayLabel[];
+      peakPerNight: number;
+      peakDescriptorPerNight: number;
+      baselinePerNight: number;
+      baselineDescriptorPerNight: number;
+      excessPerNight: number;
+      excessDescriptorPerNight: number;
+      /** The descriptor's share of the peak-versus-baseline excess, in percent. */
+      shareOfExcess: number;
+    }
+  | { kind: "no-data" }
+  /** The peak night does not exceed the baseline, so there is no excess to divide. */
+  | { kind: "no-excess" };
+
+function perNight(row: DescriptorNightRow, descriptor?: string): number {
+  if (row.nightsCounted === 0) {
+    return 0;
+  }
+
+  const total = descriptor === undefined ? row.total : (row.byDescriptor[descriptor] ?? 0);
+  return total / row.nightsCounted;
+}
+
+/**
+ * How much of the peak night's excess over the baseline nights is accounted for
+ * by one descriptor.
+ *
+ * Rates, not raw totals: the baseline is four nights per week against the peak's
+ * one, so a raw-total difference would be meaningless. The peak is passed in by
+ * the caller, derived from the data rather than assumed to be Saturday.
+ */
+export function descriptorExcess(
+  summary: DescriptorNightSummary,
+  descriptor: string,
+  peakWeekday: WeekdayLabel,
+  baselineWeekdays: readonly WeekdayLabel[] = BASELINE_NIGHTS,
+): DescriptorExcess {
+  if (!summary.hasData || baselineWeekdays.length === 0) {
+    return { kind: "no-data" };
+  }
+
+  if (baselineWeekdays.includes(peakWeekday)) {
+    return { kind: "no-excess" };
+  }
+
+  const peakRow = summary.weekdays.find((row) => row.weekday === peakWeekday);
+  const baselineRows = summary.weekdays.filter((row) => baselineWeekdays.includes(row.weekday));
+
+  if (!peakRow || peakRow.nightsCounted === 0 || baselineRows.length !== baselineWeekdays.length) {
+    return { kind: "no-data" };
+  }
+
+  if (baselineRows.some((row) => row.nightsCounted === 0)) {
+    return { kind: "no-data" };
+  }
+
+  const peakPerNight = perNight(peakRow);
+  const peakDescriptorPerNight = perNight(peakRow, descriptor);
+  const baselinePerNight =
+    baselineRows.reduce((sum, row) => sum + perNight(row), 0) / baselineRows.length;
+  const baselineDescriptorPerNight =
+    baselineRows.reduce((sum, row) => sum + perNight(row, descriptor), 0) / baselineRows.length;
+
+  const excessPerNight = peakPerNight - baselinePerNight;
+  const excessDescriptorPerNight = peakDescriptorPerNight - baselineDescriptorPerNight;
+
+  if (excessPerNight <= 0) {
+    return { kind: "no-excess" };
+  }
+
+  return {
+    kind: "computed",
+    descriptor,
+    peakWeekday,
+    baselineWeekdays: [...baselineWeekdays],
+    peakPerNight,
+    peakDescriptorPerNight,
+    baselinePerNight,
+    baselineDescriptorPerNight,
+    excessPerNight,
+    excessDescriptorPerNight,
+    shareOfExcess: (excessDescriptorPerNight / excessPerNight) * 100,
+  };
 }
 
 // ---------------------------------------------------------------------------
