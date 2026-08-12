@@ -1,0 +1,1555 @@
+/*
+ * Editorial, not dashboard.
+ *
+ * Two colours do all the work: one accent for the series a section is about, one
+ * de-emphasis gray for context. The pair is validated rather than chosen by eye -
+ * adjacent CVD deltaE 10.9 light and 13.9 dark, normal-vision 16.9 and 17.8,
+ * both against the surfaces below. Re-run the validator before changing either.
+ *
+ * Charts never rely on colour alone: the context line is dashed, series are
+ * labelled at their ends, and every chart has a visually-hidden table twin.
+ */
+
+:root {
+  color-scheme: light;
+
+  --surface: #fbfaf7;
+  --surface-raised: #ffffff;
+  /* The ground a chart sits on. Validated against the marks that go on it:
+     accent 4.16:1, de-emphasis 3.43:1, ink 14.28:1. */
+  --surface-band: #eae6dc;
+  --ink: #16181a;
+  --ink-secondary: #464b50;
+  --muted: #7d7a74;
+  --rule: #e2ded4;
+  --grid: #ebe7dd;
+
+  --accent: #c2410c;
+  --accent-wash: rgba(194, 65, 12, 0.09);
+  --de-emphasis: #7d7a74;
+
+  /* ~57 characters at the body size: long enough to read, short enough to scan. */
+  --measure: 34rem;
+  --measure-wide: 74rem;
+  --rail-width: 16rem;
+
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--font-display), var(--sans);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
+}
+
+/*
+ * Dark values are applied from two scopes, and both are needed.
+ *
+ *   1. The OS preference - but only when the reader has not explicitly asked for
+ *      light, so an explicit light choice beats a dark system setting.
+ *   2. An explicit dark choice, which must beat a light system setting.
+ *
+ * There is no way to share one declaration block between a media query and a
+ * plain selector in CSS, so the palette is written twice. Keep them in sync:
+ * `theme.test.ts` fails if they drift.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --surface: #121417;
+    --surface-raised: #191c20;
+    --surface-band: #191d22;
+    --ink: #eef1f4;
+    --ink-secondary: #b9c0c7;
+    --muted: #9aa3ad;
+    --rule: #2b3037;
+    --grid: #242930;
+
+    --accent: #e2703a;
+    --accent-wash: rgba(226, 112, 58, 0.13);
+    --de-emphasis: #9aa3ad;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #121417;
+  --surface-raised: #191c20;
+  --surface-band: #191d22;
+  --ink: #eef1f4;
+  --ink-secondary: #b9c0c7;
+  --muted: #9aa3ad;
+  --rule: #2b3037;
+  --grid: #242930;
+
+  --accent: #e2703a;
+  --accent-wash: rgba(226, 112, 58, 0.13);
+  --de-emphasis: #9aa3ad;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Native smooth scroll for the in-page links. Scroll is never driven from JS. */
+  scroll-behavior: smooth;
+  scroll-padding-top: 4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.1875rem;
+  line-height: 1.62;
+  font-synthesis-weight: none;
+}
+
+main {
+  padding: 0 1.5rem;
+}
+
+article {
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding: 4rem 0 8rem;
+}
+
+/*
+ * Graphic-primary, as a full-bleed grid.
+ *
+ * A centre column holds the reading measure and everything lands in it by
+ * default; charts opt out and span the whole article. The grid does the
+ * centring rather than auto margins on each child, because any child with its
+ * own `margin` shorthand silently cancels an auto margin - which is exactly what
+ * happened when this was tried the other way.
+ */
+/*
+ * `minmax(0, 1fr)`, not `1fr`. A bare `1fr` track is `minmax(auto, 1fr)`, so its
+ * floor is the min-content width of whatever sits in it. The full-bleed children
+ * below span all three tracks, and `.two-columns` reports a min-content width of
+ * 2 x 20rem + gap = 680px, which the outer tracks then grew to satisfy: the grid
+ * widened past the viewport instead of telling the child how much room it had,
+ * so the page scrolled sideways and the "what it does not establish" column ran
+ * off the right edge on every phone. The child's own `auto-fit` was never at
+ * fault - it collapses correctly the moment it is given a width.
+ */
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(var(--measure), 100%) minmax(0, 1fr);
+}
+
+.section > * {
+  grid-column: 2;
+}
+
+.section > .chart,
+.section > .small-multiples,
+.section > .ledger,
+.section > .two-columns,
+.section > .queries,
+.section > .explore {
+  grid-column: 1 / -1;
+  /*
+   * Constraining the tracks above is only part of it, and the rest is the reason
+   * this took three goes to get right.
+   *
+   * A grid item's `min-width` is `auto`, so an item whose min-content is wider
+   * than its area overflows rather than shrinking into it - hence `min-width: 0`.
+   * But these items also centre themselves with `margin-inline: auto`, and an
+   * auto inline margin cancels the stretch that would otherwise size an item to
+   * its area. Without stretch the box is shrink-to-fit, which resolves to its
+   * min-content width, which for `.two-columns` is two 20rem tracks plus the gap
+   * - 680px, on a 342px grid area, on a 390px phone.
+   *
+   * `width: 100%` makes the width definite, so the box fills its area, the auto
+   * margins simply have no free space left to distribute, and the child grid's
+   * own `auto-fit` finally sees a real width and collapses to one column. The
+   * margins still centre these items at desktop widths, where `max-width` binds
+   * before the area does.
+   */
+  min-width: 0;
+  width: 100%;
+}
+
+/* Graphic-led sections claim a viewport, so a chart is never a third of one. */
+@media (min-width: 48rem) {
+  .section-tall {
+    min-height: 100vh;
+    align-content: center;
+  }
+}
+
+/* ---------- Typography ---------- */
+
+h1,
+h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+h3 {
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+h1 {
+  margin: 0 0 1.5rem;
+  font-size: clamp(2.7rem, 8vw, 4.6rem);
+  line-height: 0.96;
+}
+
+h2 {
+  max-width: var(--measure);
+  margin: 0 0 1.25rem;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.06;
+}
+
+h3 {
+  max-width: var(--measure);
+  margin: 2.75rem 0 0.75rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+p {
+  max-width: var(--measure);
+  margin: 0 0 1.35rem;
+}
+
+strong {
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82em;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Sections ---------- */
+
+.section {
+  padding: 4.5rem 0 0;
+}
+
+/* Detail that belongs under the chart: caveats, method notes, provenance. */
+.secondary {
+  max-width: var(--measure);
+  color: var(--ink-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* The number the section is about, not bold body text. */
+.key-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: var(--measure);
+  margin: 2rem auto;
+}
+
+.key-figure-value {
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.key-figure-caption {
+  color: var(--ink-secondary);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+/* ---------- Next link ---------- */
+
+.next-link {
+  max-width: var(--measure);
+  margin: 3.5rem auto 0;
+}
+
+.next-link a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--ink-secondary);
+}
+
+.next-link a:hover {
+  color: var(--accent);
+}
+
+.next-link-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.next-link-title {
+  font-size: 1.05rem;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 4px;
+}
+
+/* ---------- Progress bar ---------- */
+
+.progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  padding: 0 2px;
+  height: 3px;
+  background: var(--surface);
+}
+
+.progress-segment {
+  flex: 1;
+  background: var(--rule);
+  transition: background-color 220ms ease;
+}
+
+.progress-segment-done {
+  background: var(--accent);
+}
+
+/* ---------- Section rail ---------- */
+
+.rail {
+  position: fixed;
+  top: 50%;
+  right: 1.25rem;
+  z-index: 10;
+  transform: translateY(-50%);
+}
+
+.rail ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  align-items: flex-end;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: none;
+}
+
+.rail a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+  text-decoration: none;
+}
+
+.rail-label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  color: var(--ink-secondary);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    max-width 200ms ease,
+    opacity 200ms ease;
+}
+
+.rail-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--rule);
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.rail-item-active .rail-dot {
+  background: var(--accent);
+  transform: scale(1.45);
+}
+
+.rail a:hover .rail-label,
+.rail a:focus-visible .rail-label,
+.rail-item-active .rail-label {
+  max-width: var(--rail-width);
+  opacity: 1;
+}
+
+.rail a:hover .rail-dot {
+  background: var(--accent);
+}
+
+/* The rail needs room beside the content; below that it is simply not shown. */
+@media (max-width: 64rem) {
+  .rail {
+    display: none;
+  }
+}
+
+/* ---------- Back to the top ---------- */
+
+/*
+ * Shown only on the last section, so it never covers a chart while there is
+ * still piece left to read. It shares the rail's right edge and matches the
+ * theme button's 36px target, so the chrome reads as one set rather than three
+ * unrelated controls. It stays at every width - the rail is the thing that needs
+ * room beside the content, this is not.
+ *
+ * `visibility` rather than opacity alone: hidden means out of the tab order and
+ * out of the accessibility tree, so it is not a control keyboard users can reach
+ * before it means anything. The delayed transition on it lets the fade finish
+ * before it goes.
+ */
+.to-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.5rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.4rem);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    visibility 0s linear 220ms;
+}
+
+.to-top-shown {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    visibility 0s;
+}
+
+.to-top:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reveal + .reveal {
+  border-top: 1px solid var(--rule);
+  margin-top: 4.5rem;
+}
+
+/*
+ * Entrance. `reveal-pending` is added by JavaScript after mount and never
+ * appears in the served HTML, so the default state of every section is visible.
+ * See components/ui/Reveal.tsx.
+ *
+ * The hidden state carries no transition, so adding the class snaps the section
+ * out of view in one frame rather than animating it out; only the entering state
+ * transitions. Getting that backwards makes the class change animate 1 -> 0, and
+ * the section settles visible instead of waiting to be revealed. Nothing on
+ * screen is ever hidden this way - the class only lands below the fold.
+ */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.reveal-pending.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* One beat between a section's words and its chart. No geometry is animated:
+   the weekday line already uses its dash pattern to carry identity. */
+.reveal-pending .chart {
+  opacity: 0;
+}
+
+.reveal-pending.reveal-in .chart {
+  opacity: 1;
+  transition: opacity 520ms ease 170ms;
+}
+
+.section-wide {
+  max-width: none;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.9rem;
+  padding-top: 0.55rem;
+  border-top: 2px solid var(--ink);
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.lede {
+  font-size: 1.32rem;
+  line-height: 1.45;
+}
+
+.boundary {
+  max-width: var(--measure);
+  margin-top: 2rem;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--accent);
+  color: var(--ink-secondary);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.source-line,
+.interval {
+  max-width: var(--measure);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.status {
+  max-width: var(--measure);
+  padding: 1rem 1.15rem;
+  border-left: 2px solid var(--muted);
+  background: var(--surface-raised);
+  color: var(--ink-secondary);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+}
+
+.claims {
+  max-width: var(--measure);
+  margin: 0 0 1.35rem;
+  padding-left: 1.15rem;
+}
+
+.claims li {
+  margin-bottom: 0.7rem;
+}
+
+/* ---------- Charts ---------- */
+
+.chart {
+  margin: 2.25rem 0;
+}
+
+.chart-caption {
+  max-width: var(--measure);
+  margin: 0 auto 0.9rem;
+  color: var(--ink-secondary);
+  font-family: var(--sans);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Each chart pins its own max-width to its viewBox width, so one viewBox unit
+     renders as one CSS pixel and the mark specs are literal. */
+  overflow: visible;
+  /* The plate is full-bleed and the chart inside it is not, so without this the
+     narrower charts sat hard against the left edge of a band that ran on for
+     another 300-600px - the reveal's columns took up under half their plate. The
+     caption and the note above and below were already centred, so the chart was
+     the only part of the figure that was not. */
+  margin-inline: auto;
+}
+
+/*
+ * Chart text.
+ *
+ * A browser scales an SVG and everything inside it, text included, so a label
+ * declared at 12 viewBox units measures 12px only while the chart is drawn at
+ * full size. On a 390px phone the year calendar is drawn at 28% and that label
+ * landed at 3.1px; the four mid-size charts landed at 4.3px. Every value was
+ * still reachable in the table twin, but a sighted reader on a phone was looking
+ * at an axis it is not possible to read.
+ *
+ * So chart text is sized against the chart's own viewBox width, which
+ * `chartStyle` publishes as `--vb`. On screen a label ends up measuring
+ * `(--vb * k) * (available / --vb)`, which is just `k * available`: the viewBox
+ * cancels out, so one coefficient per band holds every chart at the same
+ * on-screen size no matter how wide its viewBox is.
+ *
+ * `max()` is what preserves the desktop sizes. A chart narrower than the space
+ * available is not scaled at all, so its declared size is its rendered size and
+ * the 12px floor is what applies; only a chart actually being shrunk takes the
+ * computed branch. That is why this needs no breakpoint of its own to switch on.
+ *
+ * Everything below is `em` against this root, so the hierarchy between ticks,
+ * values and row labels is stated once and survives at every width.
+ */
+.chart-svg {
+  font-size: max(12px, calc(var(--vb, 0) * var(--chart-k, 0) * 1px));
+}
+
+/*
+ * Tuned by measurement, from 320px up to the width at which no chart is scaled.
+ *
+ * Each step holds the root at 11.5px or more on screen at its narrow end. The
+ * floor is the root rather than 10px because the smallest thing derived from it
+ * is the night grid's row labels at 0.875em, and those are what have to clear
+ * 10px - the first pass targeted the root and left them at 9.8.
+ *
+ * 48rem is where `.chart-svg` stops being pinned to its viewBox width, so the
+ * steps either side of it are computed against different available widths.
+ */
+@media (max-width: 77.5rem) {
+  .chart-svg { --chart-k: 0.0122; }
+}
+
+@media (max-width: 62.5rem) {
+  .chart-svg { --chart-k: 0.017; }
+}
+
+@media (max-width: 48rem) {
+  .chart-svg { --chart-k: 0.0223; }
+}
+
+@media (max-width: 38.75rem) {
+  .chart-svg { --chart-k: 0.029; }
+}
+
+@media (max-width: 31.25rem) {
+  .chart-svg { --chart-k: 0.0364; }
+}
+
+@media (max-width: 26.25rem) {
+  .chart-svg { --chart-k: 0.0449; }
+}
+
+@media (max-width: 22.5rem) {
+  .chart-svg { --chart-k: 0.0532; }
+}
+
+/*
+ * Small multiples are the exception, because two of them share a row: each is
+ * drawn at about half the width every coefficient above assumes. Their text was
+ * landing proportionally smaller than every other chart's on the page - 9.4px at
+ * desktop and 7px at 768px - which is why the persistence pair always looked
+ * finer-printed than the charts around it. Double the coefficient, and a floor
+ * that accounts for the fact that these are scaled down even at full width.
+ *
+ * Guarded above the width where the row collapses to a single column: below that
+ * they are full-width like any other chart and the ordinary rule is correct.
+ */
+@media (min-width: 43.75rem) {
+  .small-multiples .chart-svg {
+    font-size: max(14px, calc(var(--vb, 0) * var(--chart-k, 0) * 2 * 1px));
+  }
+}
+
+.chart-note {
+  max-width: var(--measure);
+  margin: 1rem auto 0;
+  color: var(--ink-secondary);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.small-multiples {
+  display: grid;
+  gap: 2rem;
+  /* Same floor problem as `.two-columns` above. */
+  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+  max-width: 62rem;
+  margin: 0 auto;
+}
+
+.small-multiples .chart {
+  margin: 0;
+}
+
+/* Marks. Thin, recessive chrome; the data is the only loud thing.
+   The de-emphasis mark is drawn solid, not faded: at 55% opacity it blended to
+   roughly 2:1 against the surface, under the 3:1 the validated colour clears on
+   its own. Emphasis comes from the accent being saturated and this being
+   neutral, not from making the context mark weak. */
+.mark-accent {
+  fill: var(--accent);
+}
+
+.mark-muted {
+  fill: var(--de-emphasis);
+}
+
+.line-accent {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Dashed so the two series are separable without colour. */
+.line-muted {
+  fill: none;
+  stroke: var(--de-emphasis);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.marker-accent {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.marker-muted {
+  fill: var(--surface);
+  stroke: var(--de-emphasis);
+  stroke-width: 2;
+}
+
+.marker-muted-solid {
+  fill: var(--de-emphasis);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.dumbbell-accent {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.dumbbell-muted {
+  stroke: var(--de-emphasis);
+  stroke-width: 2;
+  opacity: 0.55;
+}
+
+.night-band {
+  fill: var(--accent-wash);
+}
+
+.gap-rule {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.interval-rule {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+.interval-cap {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.threshold-rule {
+  stroke: var(--ink-secondary);
+  stroke-width: 1.5;
+}
+
+/* Gridlines and axes: solid hairlines, one step off the surface. */
+.grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.axis {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+/* Text wears text tokens, never the series colour. */
+.tick,
+.series-label,
+.value-label,
+.threshold-label {
+  font-family: var(--sans);
+  fill: var(--muted);
+  font-size: 1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tick-faint {
+  font-size: 0.917em;
+  letter-spacing: 0.05em;
+}
+
+.row-label {
+  font-size: 1.042em;
+  fill: var(--ink-secondary);
+}
+
+.row-label-strong {
+  font-weight: 700;
+  fill: var(--ink);
+}
+
+.series-label,
+.threshold-label {
+  fill: var(--ink-secondary);
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.value-label {
+  fill: var(--ink);
+  font-size: 1.083em;
+  font-weight: 700;
+}
+
+.value-label-muted {
+  fill: var(--muted);
+  font-weight: 600;
+}
+
+.guess-line {
+  stroke: var(--ink-secondary);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+
+.guess-label {
+  fill: var(--ink-secondary);
+  font-weight: 600;
+}
+
+/* ---------- Guess ---------- */
+
+.guess {
+  max-width: var(--measure);
+  margin: 2rem 0;
+}
+
+/* Segmented controls. The radio itself is visually hidden but focusable, and
+   its label is the visible control, so keyboard behaviour is the browser's. */
+.guess-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.guess-option {
+  position: relative;
+}
+
+.guess-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.guess-option label {
+  display: block;
+  padding: 0.7rem 1.3rem;
+  font-size: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.guess-option input:hover + label {
+  border-color: var(--accent);
+}
+
+/* The ring rides the label, since the input it belongs to is transparent. */
+.guess-option input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.guess-option input:checked + label {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+/* Paragraphs carry bottom margin only, so this one had nothing holding it off
+   the control it reports on and sat hard against the pills while the space above
+   them stayed open. Not symmetrical on purpose: it belongs to the control, so it
+   sits nearer to it than the question does. */
+.guess-status {
+  margin-top: 1.25rem;
+}
+
+/* ---------- Theme control ---------- */
+
+.theme-toggle {
+  display: flex;
+  justify-content: flex-end;
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding-top: 1.75rem;
+}
+
+/* 36px square: comfortably past the 24px minimum target size, and small enough
+   not to compete with the opening headline. */
+.theme-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.theme-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+
+/* ---------- Prediction ledger ---------- */
+
+/*
+ * Four predictions used to be four near-identical prose blocks. As a ledger they
+ * read as a table of record: what was claimed on the left, what came back on the
+ * right, the verdict pulled out so the four can be compared at a glance.
+ */
+.ledger {
+  max-width: 62rem;
+  margin: 2.5rem auto 2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr 1fr;
+  column-gap: 2.5rem;
+  padding: 2rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.ledger-index {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.ledger-cell > * {
+  max-width: none;
+}
+
+.ledger-cell-outcome {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--accent);
+}
+
+.ledger-label {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ledger-text {
+  margin: 0 0 0.85rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.ledger-aside {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.ledger-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0 0 0.9rem;
+}
+
+.ledger-headline-value {
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.ledger-headline-caption {
+  color: var(--ink-secondary);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.ledger-source {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.78rem;
+}
+
+.ledger-evidence {
+  grid-column: 2 / -1;
+  margin-top: 1.5rem;
+}
+
+.ledger-evidence .chart {
+  margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .ledger-row {
+    grid-template-columns: 1fr;
+    row-gap: 1.5rem;
+  }
+
+  .ledger-cell-outcome {
+    padding-left: 1.1rem;
+  }
+
+  .ledger-evidence {
+    grid-column: 1;
+  }
+}
+
+/* ---------- Two-column split ---------- */
+
+.two-columns {
+  display: grid;
+  /* `min(20rem, 100%)`, not `20rem`: a bare floor of 20rem cannot shrink below
+     320px even once it is the only column, so on a 320px phone the single track
+     still overhung the screen. */
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: 2.5rem;
+  max-width: 62rem;
+  margin: 1.5rem auto 0;
+}
+
+.column > h3 {
+  margin-top: 0;
+  max-width: none;
+}
+
+.column > .claims {
+  max-width: none;
+}
+
+.column-emphasis {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--accent);
+}
+
+@media (max-width: 52rem) {
+  .column-emphasis {
+    padding-left: 1.1rem;
+  }
+}
+
+/* ---------- Pull quote, drop cap, note subheads ---------- */
+
+.pull-quote {
+  max-width: var(--measure);
+  margin: 2.25rem auto;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--accent);
+  font-size: clamp(1.4rem, 3vw, 1.85rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.drop-cap::first-letter {
+  float: left;
+  margin: 0.32rem 0.55rem 0 0;
+  color: var(--accent);
+  font-size: 3.6em;
+  font-weight: 600;
+  line-height: 0.78;
+}
+
+.note-head {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- Explore ---------- */
+
+.explore-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.75rem 0 0.75rem;
+}
+
+.explore-control label {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.explore-control select {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1rem;
+}
+
+.explore-status {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.86rem;
+}
+
+.explore-charts {
+  display: grid;
+  gap: 2rem;
+}
+
+/* ---------- Method ---------- */
+
+.queries {
+  max-width: 46rem;
+  margin: 0 0 1.5rem;
+  padding-left: 1.15rem;
+}
+
+.queries li {
+  margin-bottom: 1.1rem;
+}
+
+.queries span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.queries code {
+  display: block;
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--rule);
+  background: var(--surface-raised);
+  color: var(--ink-secondary);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+/* ---------- Utility ---------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 48rem) {
+  article {
+    padding: 2.5rem 0 5rem;
+  }
+
+  .section {
+    padding-top: 3rem;
+  }
+
+  .reveal + .reveal {
+    margin-top: 3rem;
+  }
+
+  /* No viewport minimum on mobile: sections take the height they need. */
+  .section-tall {
+    display: block;
+    min-height: 0;
+  }
+
+  .key-figure-value {
+    font-size: clamp(2.6rem, 15vw, 4rem);
+  }
+
+  .chart-svg {
+    max-width: 100% !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  /* Killing the transition is not enough - the hidden state has to be undone,
+     in case the preference changes after the class was applied. */
+  .reveal-pending,
+  .reveal-pending .chart {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* The rule above shortens durations but not delays, and the arrow uses a delay
+     to hold `visibility` until its fade finishes. With no fade to wait for, the
+     delay would leave it hanging in the tree after it had gone. */
+  .to-top {
+    transition-delay: 0s !important;
+  }
+}
+
+@media print {
+  .reveal-pending,
+  .reveal-pending .chart {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ---------- Corpus calendar ---------- */
+
+/* 364 marks: the 2px surface gap between adjacent bars is a rule for a handful
+   of readable bars, not for a comb. Density is the point here, and precision
+   lives in the summary table. */
+.day-bar {
+  fill: var(--de-emphasis);
+}
+
+.day-bar-accent {
+  fill: var(--accent);
+}
+
+.anchor-leader {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.anchor-dot {
+  fill: var(--ink-secondary);
+}
+
+.anchor-label {
+  font-family: var(--sans);
+  font-size: 1em;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.anchor-value {
+  font-family: var(--sans);
+  font-size: 0.958em;
+  font-variant-numeric: tabular-nums;
+  fill: var(--muted);
+}
+
+.chart-svg-full {
+  max-width: 100%;
+}
+
+/* Secondary notes below a chart, when there is more than one paragraph of them. */
+.note-block {
+  display: block;
+}
+
+.note-block + .note-block {
+  margin-top: 0.85rem;
+}
+
+/* ---------- Colophon ---------- */
+
+/* Not a section: outside the article, out of the running order, out of the nav. */
+.colophon {
+  max-width: var(--measure-wide);
+  margin: 0 auto;
+  padding: 0 0 5rem;
+}
+
+.colophon p {
+  max-width: min(var(--measure), 100%);
+  margin: 0 auto;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+
+/* ---------- Municipal record ---------- */
+
+/*
+ * The chart sits on its own ground. Bands alternate against the page so a
+ * chart-led section reads as a plate rather than as an illustration dropped into
+ * prose. The band tone is validated against every mark that lands on it.
+ */
+.section-tall > .chart {
+  padding: 2.5rem 1.75rem 2rem;
+  background: var(--surface-band);
+}
+
+/* A docket number, set like a form field. */
+.eyebrow-index {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.eyebrow-index::after {
+  content: " /";
+}
+
+/*
+ * Grain. A film over the whole page at 3%, which reads as paper and asphalt
+ * rather than as texture. Removed where it would work against the reader.
+ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  body::after {
+    display: none;
+  }
+}
+
+/* ---------- Heatmap ---------- */
+
+/*
+ * Sequential, not categorical: one hue, light to dark, validated for monotone
+ * lightness, adjacent lightness gap and single hue in both themes. The lightest
+ * step recedes toward the surface, which is correct for a sequential scale - and
+ * a true zero is an empty cell, so "none" and "a few" stay distinguishable.
+ */
+:root {
+  --heat-1: #f6ded0;
+  --heat-2: #eebfa0;
+  --heat-3: #e29b70;
+  --heat-4: #d17544;
+  --heat-5: #c2410c;
+  --heat-6: #96320a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --heat-1: #3a2820;
+    --heat-2: #5d3a24;
+    --heat-3: #87512c;
+    --heat-4: #b06734;
+    --heat-5: #e2703a;
+    --heat-6: #f2996b;
+  }
+}
+
+:root[data-theme="dark"] {
+  --heat-1: #3a2820;
+  --heat-2: #5d3a24;
+  --heat-3: #87512c;
+  --heat-4: #b06734;
+  --heat-5: #e2703a;
+  --heat-6: #f2996b;
+}
+
+.heat-0 {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.heat-1 { fill: var(--heat-1); }
+.heat-2 { fill: var(--heat-2); }
+.heat-3 { fill: var(--heat-3); }
+.heat-4 { fill: var(--heat-4); }
+.heat-5 { fill: var(--heat-5); }
+.heat-6 { fill: var(--heat-6); }
+
+.heat-row-label,
+.heat-col-label,
+.heat-total {
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The per-night totals go on a phone, and only there.
+ *
+ * Fifty-two rows are drawn 12 units apart, which at phone widths is about five
+ * screen pixels per row. Text large enough to read is then taller than the row
+ * it labels, so scaling chart text up - which is what makes the rest of this
+ * grid legible - made this one column overlap itself into a smear. Five pixels
+ * of row cannot carry ten pixels of type; that is a density limit, not a
+ * tuning one.
+ *
+ * The dated row labels stay: they appear every fourth row, so they have four
+ * rows of space each and clear the type comfortably. The totals are in the table
+ * twin in full, and the busiest, quietest and median nights are named in the note
+ * under the chart, so nothing here is only available to a reader on a desktop.
+ */
+@media (max-width: 48rem) {
+  .heat-total {
+    display: none;
+  }
+}
+
+/*
+ * The corpus chart's annotations go on a phone, for the same reason.
+ *
+ * Five dated call-outs are staggered over three rows 34 units apart and pinned
+ * to the day they describe, so both their spacing and their horizontal room are
+ * fixed while the type is not. At phone widths they overran each other by more
+ * than 40px. Every fact they carry - the busiest day, the quietest, the median,
+ * the busiest weekday - is written out in the note directly under the chart, and
+ * the chart's own lede asks the reader to look at the shape of the year rather
+ * than at individual days. Leaders and dots go with the labels; a leader line
+ * pointing at nothing is worse than no leader.
+ *
+ * The rhythm chart passes no anchors, so this only affects the corpus chart.
+ */
+@media (max-width: 48rem) {
+  .anchor-label,
+  .anchor-value,
+  .anchor-leader,
+  .anchor-dot {
+    display: none;
+  }
+
+  /* Thinned rather than crushed: see the note in HourlyLines. */
+  .tick-alternate {
+    display: none;
+  }
+
+  /*
+   * The board comparison is the one chart the 10px floor cannot be met on.
+   *
+   * Eighteen boards are drawn 32 units apart, which on a 390px phone is 10.6
+   * screen pixels of pitch per row - a row cannot hold a label as tall as
+   * itself, so there is no type size that is both 10px and non-overlapping. It
+   * is sized to the pitch instead: about 9px, tight but clear of its neighbours,
+   * where the alternative was labels crossing each other.
+   *
+   * Every rate is in the table twin, and the section names the boards it is
+   * making a point about in the prose. Giving this chart more height at narrow
+   * widths is the real fix and wants a change to its geometry, not its type.
+   */
+  .row-label-dense {
+    font-size: 0.69em;
+  }
+}
+
+.heat-row-label-peak,
+.heat-total-peak {
+  fill: var(--ink);
+  font-weight: 700;
+}

@@ -2,3 +2,17 @@
 .env.*
 node_modules/
 .DS_Store
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Local audit notes, not part of the product
+REVIEW.md

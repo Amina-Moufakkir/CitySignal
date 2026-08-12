@@ -1,151 +1,236 @@
 # CitySignal
 
-CitySignal is a small public-data visualization that explores when and where NYC residential noise complaints reported to 311 are elevated.
+A narrative data piece about when and where New Yorkers report residential noise
+to 311 — and why that is not the same as where the city is loud.
 
-Live app: https://amina-moufakkir.github.io/CitySignal/
+Built on live NYC Open Data. Every figure in the piece is either recomputed from
+the API on each refresh or derived from data committed to this repository, and
+`METHOD.md` says which for every number.
 
-## Research Question
+## Reading it
 
-How do `Noise - Residential` complaints reported to NYC 311 differ by day type, hour, and geography?
+The piece runs as fourteen sections, one claim each, in order. `lib/sections.ts`
+holds the running order as data — the progress bar, the dot rail, the next-links
+and each section's eyebrow all read from it, so this table describes it rather
+than duplicating it:
 
-The project began with a narrower hypothesis:
+| # | Section | Claim |
+| --- | --- | --- |
+| 1 | Hook | This measures reporting, not noise |
+| 2 | Guess | The reader commits to a number first |
+| 3 | Corpus | Every day of the year, before anything is averaged |
+| 4 | Rhythm | The same chart again, with the weekends picked out |
+| 5 | Reveal | Weekend days run higher than weekdays |
+| 6 | Nights | The difference lives after dark, not across the day |
+| 7 | Saturday | And on one night of the week more than the others |
+| 8 | Every night | On every one of those nights, not a few big ones |
+| 9 | Parties | And in one kind of report more than the others |
+| 10 | Where | Reporting rates differ across Brooklyn community boards |
+| 11 | Persistence | The same shape appears in a second, non-overlapping year |
+| 12 | Failed explanations | Four pre-registered explanations did not survive |
+| 13 | Boundaries | What this does and does not establish |
+| 14 | Explore | The reader runs the comparison for any borough |
 
-Brooklyn receives a higher average number of residential noise complaints per day on weekends than on weekdays.
+The method is not a section. It lives in `METHOD.md`, reached from a colophon at
+the foot of the page that names the dataset and when the live figures were last
+pulled.
 
-## Dataset
+Section 12 is the centre of the piece. Four candidate explanations were written
+down as predictions, each with a number attached, before the data was examined.
+All four came back unsupported. That is presented as the result rather than as a
+gap in it.
 
-The project uses NYC Open Data's 311 Service Requests from 2010 to Present dataset:
-
-- Dataset ID: `erm2-nwe9`
-- API endpoint: `https://data.cityofnewyork.us/resource/erm2-nwe9.json`
-
-One source record represents one 311 service request. For this analysis, each record is treated as one complaint report, not as a direct measurement of actual noise.
-
-## API Approach
-
-The app does not fetch the full 311 dataset. It asks Socrata for aggregate counts using only the fields needed for the current visualizations:
-
-- `created_date`
-- `complaint_type`
-- `borough`
-
-Charts 1 and 2 are populated from live NYC Open Data API requests. They filter to:
-
-- selected borough: `BROOKLYN`, `MANHATTAN`, `QUEENS`, `BRONX`, or `STATEN ISLAND`
-- `complaint_type = 'Noise - Residential'`
-
-The app groups by calendar day and hour, then classifies weekday/weekend locally. Daily aggregate rows are shaped like:
-
-```json
-{ "day": "2024-01-01T00:00:00.000", "complaints": "437" }
-```
-
-Socrata returns aggregate values as strings, so the app validates and parses them before analysis. Malformed aggregate rows are rejected, counted, and excluded from calculations; they are not silently coerced.
-
-Chart 3 is a Brooklyn-only deep dive. It uses a static validated Phase 3 provenance dataset containing Brooklyn community board IDs, 2024 ACS 5-year occupied-household denominators, and primary-period Saturday-night `Loud Music/Party` complaint counts. The app derives complaints per 1,000 occupied households from those values.
-
-No NYC Open Data app token is used. Tokens are optional for higher Socrata rate limits, but they should not be hardcoded in browser code or committed to Git.
-
-## Date Ranges
-
-The primary range is `2024-01-01` through `2024-12-29`.
-
-The stress-test range is `2025-01-06` through `2026-01-04`.
-
-Both ranges are 52 complete Monday-Sunday weeks, giving 260 weekdays and 104 weekend days.
-
-## Finding
-
-In both tested ranges, the average number of Brooklyn `Noise - Residential` 311 complaints per day is higher on weekends than on weekdays. The live app now lets users compare the same weekday/weekend and hourly pattern across all five boroughs.
-
-This supports a difference in 311 residential noise complaint rates for the tested periods. It does not prove that actual noise levels are higher on weekends, and it does not establish a causal explanation for the complaint pattern.
-
-## Analysis Process
-
-CitySignal uses hypothesis-driven exploration rather than asking AI to find arbitrary patterns.
-
-### Phase 1 - Hypothesis-Driven Data Exploration
-
-Initial question:
-Are Brooklyn `Noise - Residential` complaints more frequent per day on weekends than weekdays?
-
-Finding:
-Weekend complaints averaged 77.8% higher per day than weekday complaints in the primary 2024 range.
-
-Stress tests:
-
-- Different date range: +76.3%
-- Manhattan, same 2024 range: +60.9%
-
-Interpretation:
-The weekend complaint pattern is repeatable and not unique to Brooklyn, but the data measures 311 reporting behavior, not actual noise levels or causation.
-
-### Phase 2 - From Finding to Insight
-
-Initial finding: Brooklyn `Noise - Residential` complaints were substantially higher per day on weekends than weekdays.
-
-Time-of-day test: late-night hours (`10 PM-3:59 AM`) accounted for most of the weekend-vs-weekday increase.
-
-Behavioral-evening correction: reassigning `12 AM-3:59 AM` complaints to the previous evening strengthened the weekend-night effect to `+127.3%` in the primary range and `+126.2%` in the stress range.
-
-Day-of-week test: Saturday night was the strongest night in both periods.
-
-Descriptor test: `Loud Music/Party` accounted for `96.4%` of the Saturday-vs-Monday-Thursday excess in the primary range and `93.7%` in the stress range.
-
-Geographic concentration test: a predefined hypothesis that the top three valid Brooklyn community boards would account for at least `40%` of Saturday-night `Loud Music/Party` complaints was not supported. The top three accounted for `38.0%` in the primary period and `37.7%` in the stress period. Boards `01` and `04` remained consistently high-volume, but the pattern was distributed across multiple areas rather than dominated by only three boards.
-
-Current candidate insight: Brooklyn's Saturday-night spike in residential-noise 311 complaints is overwhelmingly concentrated in `Loud Music/Party` reports.
-
-Interpretation boundary: this describes patterns in 311 complaint reporting. It does not measure actual noise levels or establish why the pattern occurs.
-
-Next research question: Is the Saturday-night `Loud Music/Party` concentration geographically clustered within Brooklyn, or broadly distributed?
-
-### Phase 3 - Normalize and Compare
-
-Raw geographic complaint counts can be misleading because community boards differ in size. CitySignal therefore normalized Saturday-night `Loud Music/Party` complaints using 2024 ACS 5-year estimates aggregated to Brooklyn Community District Tabulation Areas (CDTAs).
-
-Primary metric: Saturday-night `Loud Music/Party` complaints per 1,000 occupied households. Population normalization was used as a sensitivity check.
-
-Pre-registered normalization test: after household normalization, at least one of CB01 or CB04 would fall outside the top five. This hypothesis was not supported. CB04 remained #1 at `30.6` complaints per 1,000 occupied households, and CB01 remained near the top. A population-based sensitivity check also kept CB04 first and CB01 near the top. The stress period preserved the result: CB04 remained first and CB01 second.
-
-Alternative explanations tested:
-
-- Residential density showed only a weak association with normalized complaint rates and did not explain BK04's unusually high complaint-reporting rate.
-- Current on-premises alcohol-license exposure showed a very weak relationship with normalized complaint rates and did not explain BK04.
-- A pre-registered repeated-location hypothesis was not supported: the top 10 valid BBL locations accounted for only `10.4%` of BK04 complaints in the primary period and `8.4%` in the stress period.
-- Roughly `78-81%` of valid BBL locations appeared on only one Saturday night.
-- Same-location/same-night multi-complaint bursts were still meaningful, so complaint counts must not be interpreted as unique noise incidents.
-
-Phase 3 conclusion: BK04's unusually high Saturday-night residential noise complaint-reporting rate persists after accounting for household size, residential density, nightlife-license exposure, and repeated-location concentration; complaints are distributed across hundreds of residential tax lots, with some same-night reporting bursts.
-
-Interpretation boundary: this is a pattern in 311 complaint reporting. It does not measure actual noise levels, establish causation, identify problematic residents or buildings, or imply neighborhood quality.
-
-Limitation: CDTAs approximate, but are not identical to, legal community-district boundaries. The ACS denominator uses 2024 five-year estimates, while the stress complaint period extends into 2025 and early 2026.
-
-## Run the App
-
-Start a simple local HTTP server from the project directory:
+## Running it
 
 ```sh
-python3 -m http.server 8000
+npm install
+npm run dev          # http://localhost:3000
 ```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
-## Run Tests
-
-Run deterministic unit tests:
 
 ```sh
-node --test
+npm test             # unit tests, no network
+npm run typecheck
+npm run build        # queries the live API
+npm run verify:live  # checks the live API still reproduces the figures
 ```
 
-Run the live verification script, which fetches current aggregated daily counts from NYC Open Data and reproduces the displayed metrics:
+Requires Node 20 or newer.
 
-```sh
-node verify-live.js
+## How it is built
+
+Next.js App Router, TypeScript, hand-rolled SVG charts. No chart library, no
+scroll library, no animation library. `d3-scale` and `d3-shape` are the only
+non-framework dependencies.
+
+**Data is fetched on the server** behind a six-hour revalidation window. That is
+the main technical argument for the current architecture: the page ships real
+content instead of a loading state, the story is readable with JavaScript
+disabled and by crawlers, and NYC Open Data sees fourteen requests per window
+regardless of traffic rather than three per visitor per interaction.
+
 ```
+app/                 page, layout, share image, favicon
+components/charts/   hand-rolled SVG, one file per chart
+components/narrative/ one file per act; sections own their copy
+components/ui/       reading nav, theme toggle, scroll reveal
+lib/                 analysis, queries, uncertainty, config, static data
+METHOD.md            every query and every figure's provenance
+scripts/             live verification
+legacy/              the Phase 1-3 static build, frozen
+```
+
+### Things that are load-bearing
+
+Four properties hold the numbers up. `AGENTS.md` states them for anyone — human
+or agent — working in the repository, and tests enforce each:
+
+1. **Dates are parsed from components into UTC.** `created_date` is a floating
+   local timestamp with no zone; routing it through the host timezone would shift
+   days. CI runs the suite under four timezones from UTC+14 to UTC−11.
+2. **Hour and day-of-week extraction stay in the query.** Socrata reads
+   `created_date` as NYC wall-clock time, which is the frame the analysis wants.
+3. **Denominators come from walking the calendar**, never from counting returned
+   rows, so a day with genuinely zero complaints stays in the denominator.
+4. **Row validation rejects and counts. It never coerces.** `Number(null)` and
+   `Number("")` are both `0` and both pass `Number.isInteger`.
+
+A fifth is enforced by the type system rather than by a test: **absence is a
+variant, not a null.** A missing comparison is `{ kind: "no-data" }`, and reading
+a percentage without narrowing on `kind` is a compile error. This exists because
+the previous build rendered "0.0% higher" when the API returned nothing.
+
+## Data
+
+NYC Open Data,
+[311 Service Requests from 2010 to Present](https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9)
+(`erm2-nwe9`), filtered to `complaint_type = 'Noise - Residential'`. One record
+is one service request. No app token is used and none is committed; tokens raise
+Socrata's rate limit but do not belong in client code or in Git.
+
+Two periods, each 52 complete Monday-to-Sunday weeks — so each holds exactly 260
+weekdays and 104 weekend days, and neither is skewed by a partial week:
+
+- **Primary:** 2024-01-01 through 2024-12-29
+- **Stress:** 2025-01-06 through 2026-01-04
+
+They share no days.
+
+Community-board normalization uses 2024 ACS 5-year occupied-household estimates
+aggregated to DCP Community District Tabulation Areas. That dataset is committed
+and static; everything else is live.
+
+## What the piece does not claim
+
+These are product requirements, not disclaimers, and they are in `SPEC.md`:
+
+- 311 complaints are reports, not measured noise.
+- Nothing here establishes causation.
+- Complaint counts are not unique noise incidents — one address can generate
+  several reports on one night.
+- Community-board normalization exists only for Brooklyn.
+- Nothing identifies a resident or a building, and nothing implies neighbourhood
+  quality.
+- The assumed reader — someone at a community board or in city operations —
+  has never been validated with an actual such reader.
+
+---
+
+# Analysis history
+
+The piece is the current product. The investigation behind it ran in phases, and
+the record below is kept because the method is the point. `METHOD.md`
+maps every figure named here to its source, and marks the ones that cannot
+currently be reproduced from committed code.
+
+## Phase 1 — Hypothesis-driven exploration
+
+Initial question: are Brooklyn `Noise - Residential` complaints more frequent per
+day on weekends than weekdays?
+
+Weekend complaints averaged **+77.8%** per day over weekdays in the primary 2024
+range. Stress tests: **+76.3%** over a different range, **+60.9%** for Manhattan
+over the same 2024 range.
+
+The pattern is repeatable and not unique to Brooklyn — and it measures 311
+reporting behaviour, not noise levels or causation.
+
+## Phase 2 — From finding to insight
+
+- **Time of day:** late-night hours (10 PM–3:59 AM) accounted for most of the
+  weekend-versus-weekday increase.
+- **Behavioural evening:** reassigning 12 AM–3:59 AM complaints to the previous
+  evening strengthened the weekend-night effect to **+127.3%** (primary) and
+  **+126.2%** (stress).
+- **Day of week:** Saturday night was the strongest night in both periods.
+- **Descriptor:** `Loud Music/Party` accounted for **96.4%** of the
+  Saturday-versus-Monday–Thursday excess in the primary range and **93.7%** in
+  the stress range.
+- **Geographic concentration:** a pre-registered hypothesis that the top three
+  valid Brooklyn community boards would account for at least 40% of Saturday-night
+  `Loud Music/Party` complaints was **not supported** — 38.0% primary, 37.7%
+  stress. Boards 01 and 04 stayed high-volume, but the pattern was distributed.
+
+The night attribution and the descriptor decomposition are now implemented in
+`lib/analysis.ts` and recomputed live; both reproduce the figures above exactly.
+
+## Phase 3 — Normalize and compare
+
+Raw geographic counts mislead when boards differ in size, so Saturday-night
+`Loud Music/Party` complaints were normalized by 2024 ACS 5-year estimates
+aggregated to Brooklyn CDTAs.
+
+Pre-registered normalization test: after household normalization, at least one of
+CB01 or CB04 would fall outside the top five. **Not supported.** CB04 remained #1
+at **30.6** complaints per 1,000 occupied households and CB01 stayed near the
+top. A population-based sensitivity check and the stress period both preserved
+the result.
+
+Alternative explanations tested, and what happened:
+
+- **Residential density** showed only a weak association with normalized rates
+  and did not explain BK04.
+- **On-premises alcohol-licence exposure** showed a very weak relationship and
+  did not explain BK04.
+- **Repeated locations:** a pre-registered hypothesis was not supported — the top
+  ten valid BBL locations accounted for only **10.4%** of BK04 complaints in the
+  primary period and **8.4%** in the stress period.
+- Roughly **78–81%** of valid BBL locations appeared on only one Saturday night.
+- Same-location, same-night bursts were still meaningful, so complaint counts
+  must not be read as unique noise incidents.
+
+**Conclusion.** BK04's high Saturday-night residential-noise reporting rate
+persists after accounting for household size, residential density,
+nightlife-licence exposure, and repeated-location concentration. Complaints are
+distributed across hundreds of residential tax lots, with some same-night bursts.
+
+**Limitations.** CDTAs approximate but are not identical to legal
+community-district boundaries. The ACS denominator is a 2024 five-year estimate
+while the stress complaint period extends into 2025 and early 2026.
+
+## Phase 4 — The narrative product
+
+The dashboard became a sequential piece, and the architecture changed with it.
+`SPEC.md` records that decision and its reasoning.
+
+Three figures that Phase 2–3 produced but never committed are now recomputed live
+from committed code: the two descriptor decompositions (96.4% and 93.7%) and the
+top-three concentration (38.0%). Nine remain recorded rather than reproducible;
+`METHOD.md` lists exactly which.
+
+Confidence intervals were added. The top-three concentration test is the
+interesting case: at 38.0% with a 95% interval of roughly 37.0–38.9%, it sits
+entirely below its pre-registered 40% threshold — but that interval treats every
+complaint as independent, and complaints cluster within nights and addresses. The
+night-level data needed to compute the correct, wider interval is not committed.
+
+## Repository layout
+
+`SPEC.md` owns product requirements and scope. `README.md` owns explanation,
+method, and this history. `AGENTS.md` tells coding agents how to work here and
+defers to `SPEC.md`. `METHOD.md` owns figure provenance. Implementation
+details live in code and tests.
+
+## Licence
+
+MIT — see `LICENSE`. The 311 and ACS data are published by the City of New York
+and the U.S. Census Bureau respectively and are not covered by it.
