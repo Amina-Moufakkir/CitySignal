@@ -55,13 +55,30 @@ Descriptor, day-of-week detail, density, nightlife exposure, and repeated-locati
 
 ## Current Supported Capabilities
 
-The currently validated CitySignal product surface supports:
+The CitySignal product surface is a sequential narrative of twelve sections, one
+claim each, presented in order. It supports:
 
-- live borough weekday/weekend comparison
-- live borough hourly comparison
-- selected-borough insight derived from live daily and hourly results
-- Brooklyn-only household-normalized community-board comparison
-- explicit interpretation boundaries
+- live weekday/weekend comparison, with a confidence interval
+- live hour-of-day comparison
+- live night-of-week comparison, using a stated night definition and calendar-counted denominators
+- live descriptor decomposition of the peak night against a baseline
+- live persistence check across a second, non-overlapping period
+- Brooklyn-only household-normalized community-board comparison, from a static extract
+- a record of pre-registered hypotheses that were not supported, each labelled with its source
+- reader-run borough comparison, from data already computed on the server
+- explicit interpretation boundaries, as their own section rather than as footnotes
+- a method section stating the queries, the handling, and the known limitations
+
+The decision model's five signals map onto this surface as follows. Phases 1-3
+left three of the five unserved; all five are now present:
+
+| Signal | Where |
+| --- | --- |
+| Unusualness | Weekday baseline comparison, with interval |
+| Specificity | Hour, night of week, descriptor, community board |
+| Persistence | Second non-overlapping period, computed live |
+| Volume | Underlying complaint counts stated in the prose, not only rates |
+| Interpretation boundary | Its own section, plus per-section boundaries |
 
 ## Current Limitations
 

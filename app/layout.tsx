@@ -2,11 +2,59 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 
-/** Full metadata, Open Graph, and the generated share image land in increment 5. */
+const TITLE = "Where is New York loud? | CitySignal";
+const DESCRIPTION =
+  "NYC 311 residential noise complaints do not show where the city is loud - they show who calls it. A live look at when and where New Yorkers report noise, and four explanations that did not survive.";
+
+/**
+ * SITE_URL is read from Vercel's deployment environment so canonical and Open
+ * Graph URLs are correct in preview and production without being hardcoded.
+ * NEXT_PUBLIC_SITE_URL overrides it for a custom domain.
+ */
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
+
 export const metadata: Metadata = {
-  title: "CitySignal",
-  description:
-    "When and where New Yorkers report residential noise to 311 - and what that does and does not tell you.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: "CitySignal",
+  authors: [{ name: "Amina Moufakkir" }],
+  creator: "Amina Moufakkir",
+  keywords: [
+    "NYC 311",
+    "noise complaints",
+    "NYC Open Data",
+    "data journalism",
+    "civic data",
+    "Brooklyn",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "article",
+    siteName: "CitySignal",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
+  category: "data journalism",
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#121417" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

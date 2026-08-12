@@ -1,0 +1,43 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The analysis must be independent of the host timezone. It is, by
+        # construction - every date is parsed from components into UTC - but
+        # nothing enforced that until this matrix. UTC+14 and UTC-11 bracket the
+        # range, so a getUTCDay() -> getDay() regression fails here even though it
+        # would pass on a developer machine in US Eastern.
+        timezone: [UTC, America/New_York, Pacific/Kiritimati, Pacific/Midway]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+# The live verification script is deliberately not run here. It queries the NYC
+# Open Data API, which throttles unauthenticated callers, and a CI failure caused
+# by upstream rate limiting would be noise. Run `npm run verify:live` by hand.

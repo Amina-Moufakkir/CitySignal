@@ -153,15 +153,12 @@ code {
  * Entrance. `reveal-pending` is added by JavaScript after mount and never
  * appears in the served HTML, so the default state of every section is visible.
  * See components/ui/Reveal.tsx.
- */
-/*
- * The hidden state carries no transition, so adding the class snaps the section
- * out of view in one frame rather than animating it out. Only the entering state
- * transitions. Getting this backwards makes the class change animate 1 -> 0, and
- * the section ends up settling visible instead of waiting to be revealed.
  *
- * Nothing on screen is ever hidden this way: Reveal only applies the class to
- * sections still below the fold.
+ * The hidden state carries no transition, so adding the class snaps the section
+ * out of view in one frame rather than animating it out; only the entering state
+ * transitions. Getting that backwards makes the class change animate 1 -> 0, and
+ * the section settles visible instead of waiting to be revealed. Nothing on
+ * screen is ever hidden this way - the class only lands below the fold.
  */
 .reveal-pending {
   opacity: 0;
@@ -289,14 +286,17 @@ code {
   margin: 0;
 }
 
-/* Marks. Thin, recessive chrome; the data is the only loud thing. */
+/* Marks. Thin, recessive chrome; the data is the only loud thing.
+   The de-emphasis mark is drawn solid, not faded: at 55% opacity it blended to
+   roughly 2:1 against the surface, under the 3:1 the validated colour clears on
+   its own. Emphasis comes from the accent being saturated and this being
+   neutral, not from making the context mark weak. */
 .mark-accent {
   fill: var(--accent);
 }
 
 .mark-muted {
   fill: var(--de-emphasis);
-  opacity: 0.55;
 }
 
 .line-accent {
@@ -338,13 +338,13 @@ code {
 .dumbbell-accent {
   stroke: var(--accent);
   stroke-width: 2;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 .dumbbell-muted {
   stroke: var(--de-emphasis);
   stroke-width: 2;
-  opacity: 0.4;
+  opacity: 0.55;
 }
 
 .night-band {
@@ -360,7 +360,7 @@ code {
   stroke: var(--accent);
   stroke-width: 3;
   stroke-linecap: round;
-  opacity: 0.35;
+  opacity: 0.5;
 }
 
 .interval-cap {
