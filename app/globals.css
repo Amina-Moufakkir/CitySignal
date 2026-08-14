@@ -32,6 +32,11 @@
   --measure: 34rem;
   --measure-wide: 74rem;
   --rail-width: 16rem;
+  /* The rail's own geometry. The active label is a separate element positioned
+     from its section, so it needs these to land on the rail's label column. */
+  --rail-right: 1.25rem;
+  --rail-dot-size: 7px;
+  --rail-gap: 0.6rem;
 
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: var(--font-display), var(--sans);
@@ -478,7 +483,7 @@ code {
 .rail {
   position: fixed;
   top: 50%;
-  right: 1.25rem;
+  right: var(--rail-right);
   z-index: 10;
   transform: translateY(-50%);
 }
@@ -498,7 +503,7 @@ code {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.6rem;
+  gap: var(--rail-gap);
   padding: 0.15rem 0;
   text-decoration: none;
 }
@@ -514,14 +519,19 @@ code {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  transition:
-    max-width 200ms ease,
-    opacity 200ms ease;
+  /*
+   * Only opacity is animated. `max-width` used to be animated too, and with
+   * `overflow: hidden` that clips: every frame of the 200ms reveal showed a
+   * fragment of the label - "THE LAST CU" - which reads as broken text rather
+   * than as an animation. The width now switches instantly and the label fades,
+   * so an intermediate frame is a faint whole word, never half of one.
+   */
+  transition: opacity 200ms ease;
 }
 
 .rail-dot {
-  width: 7px;
-  height: 7px;
+  width: var(--rail-dot-size);
+  height: var(--rail-dot-size);
   border-radius: 999px;
   background: var(--rule);
   transition:
@@ -534,9 +544,113 @@ code {
   transform: scale(1.45);
 }
 
-.rail a:hover .rail-label,
-.rail a:focus-visible .rail-label,
-.rail-item-active .rail-label {
+/*
+ * The label is revealed only where it fits beside the article, not over it.
+ *
+ * The rail is fixed to the right edge and its labels open leftwards, so on an
+ * ordinary desktop they reach back across the content column: at 1440px the
+ * active label started 3px inside the chart plate, and the widest of them
+ * ("The obvious next question", 200px) would lie 109px over the chart. The plate
+ * edge cutting across a word is what read as a clipped fragment - the text was
+ * never clipped, it was overlapping.
+ *
+ * Below the width where the longest label clears the article, the rail is dots
+ * only. The label keeps `max-width: 0` rather than `display: none`, so it stays
+ * the link's accessible name and the navigation is unchanged for a screen
+ * reader; only the painting stops.
+ */
+@media (min-width: 104rem) {
+  .rail a:hover .rail-label {
+    max-width: var(--rail-width);
+    opacity: 1;
+  }
+}
+
+/*
+ * The active label, positioned from its section rather than from the rail.
+ *
+ * The rail is centred in the viewport, so the active item's own label sat
+ * wherever that item happened to fall in a column of fourteen dots - near the
+ * top for section three - while the eyebrow it named was somewhere else
+ * entirely. The two positions were unrelated, and the label read as belonging to
+ * the rail rather than to the section.
+ *
+ * So the label leaves the rail. The dots keep their stable centred geometry and
+ * never move; this one element is placed on the active eyebrow's line, from that
+ * eyebrow's measured rect. It sits in the same column the rail's own labels open
+ * into - right edge one dot plus one gap in from the rail - so the two forms are
+ * the same object seen at rest and in use, and it clears the article at the same
+ * width they do.
+ *
+ * It is shown only while `data-aligned="true"`, which ReadingNav sets when the
+ * eyebrow's centre is inside the safe region. There is no fallback position: a
+ * label with nothing to point at is absent, not parked at an edge.
+ */
+.rail-marker {
+  position: fixed;
+  top: 0;
+  right: calc(var(--rail-right) + var(--rail-dot-size) + var(--rail-gap));
+  z-index: 10;
+  display: none;
+  max-width: var(--rail-width);
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* A pointer at a heading, never a target. */
+  pointer-events: none;
+  opacity: 0;
+  color: var(--ink-secondary);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /*
+   * The vertical position is a plain translate off a custom property that
+   * ReadingNav writes, and nothing transitions it. A transition here would leave
+   * the label trailing the page while the reader scrolls, which is the chasing
+   * that reads as unstable; moving with the eyebrow reads as attached to it.
+   * Only the fade is animated. `-50%` is half the label's own height, which is
+   * what puts its centre on the line rather than its top.
+   */
+  transform: translateY(calc(var(--rail-marker-y, 50vh) - 50%));
+  transition: opacity 200ms ease;
+}
+
+.rail-marker[data-aligned="true"] {
+  opacity: 1;
+}
+
+/* Same reasoning, and the same threshold, as the labels inside the rail. */
+@media (min-width: 104rem) {
+  .rail-marker {
+    display: block;
+  }
+}
+
+/*
+ * Two ways the rail's own label and this one would be on screen together.
+ *
+ * Keyboard focus is the absolute one: a focused dot names a section the reader
+ * is choosing, and that label is the answer, so this one steps out whichever dot
+ * holds focus - the two are never up at once.
+ *
+ * Hover is narrowed to the active item alone, the only pointer case that puts
+ * the same words in two places. Hovering any other dot names a different
+ * section, which is not a duplicate, and merely resting the pointer in the
+ * rail's column must not decide whether the reader can see where they are.
+ */
+.rail:has(a:focus-visible) ~ .rail-marker,
+.rail:has(.rail-item-active a:hover) ~ .rail-marker {
+  opacity: 0;
+}
+
+/*
+ * Focus is the exception at every width. A sighted keyboard user has to be able
+ * to tell which section a focused dot belongs to, and unlike hover or scrolling
+ * it is a deliberate act, so the overlap is worth it for the moment it lasts.
+ */
+.rail a:focus-visible .rail-label {
   max-width: var(--rail-width);
   opacity: 1;
 }
