@@ -18,6 +18,19 @@ import { ChartTable, niceMax, CHART, chartStyle } from "./ChartFrame";
 const WIDTH = 860;
 const ROW_HEIGHT = 54;
 const MARGIN = { top: 30, right: 64, bottom: 56, left: 132 };
+/*
+ * The baseline end is a vertical tick and the Saturday end is a filled dot.
+ *
+ * Two circles could not do this job. Three of these four descriptors differ by
+ * so little that the marks overlap - Loud Television by 0.1 complaints a night -
+ * and any two circles, equal or unequal, read as one dot sitting inside another
+ * rather than as two endpoints. A tick and a dot are different shapes, so the
+ * pair stays legible however close the values are, and the tick is tall enough
+ * that its ends still show above and below the dot when they coincide.
+ *
+ * Shape carries the identity here, not size: size would suggest magnitude.
+ */
+const TICK_HALF_HEIGHT = 11;
 
 type Row = { descriptor: string; baseline: number; peak: number };
 
@@ -84,23 +97,44 @@ export function DescriptorDumbbell({
 
           return (
             <g key={row.descriptor}>
-              <text className="tick row-label" x={MARGIN.left - 12} y={y + 4} textAnchor="end">
+              {/* Emphasis rides the descriptor's name, not its marks: a text
+                  weight says "this is the row the section is about" without
+                  claiming the marks in it mean something different. */}
+              <text
+                className={isHighlight ? "tick row-label row-label-strong" : "tick row-label"}
+                x={MARGIN.left - 12}
+                y={y + 4}
+                textAnchor="end"
+              >
                 {row.descriptor}
               </text>
               <line
-                className={isHighlight ? "dumbbell-accent" : "dumbbell-muted"}
+                className="dumbbell-accent"
                 x1={x(row.baseline)}
                 y1={y}
                 x2={x(row.peak)}
                 y2={y}
               />
-              <circle className="marker-muted" cx={x(row.baseline)} cy={y} r={CHART.markerRadius} />
-              <circle
-                className={isHighlight ? "marker-accent" : "marker-muted-solid"}
-                cx={x(row.peak)}
-                cy={y}
-                r={CHART.markerRadius}
+              <line
+                className="endpoint-tick"
+                x1={x(row.baseline)}
+                y1={y - TICK_HALF_HEIGHT}
+                x2={x(row.baseline)}
+                y2={y + TICK_HALF_HEIGHT}
               />
+              {/*
+                Every Saturday endpoint is the accent, not just the highlighted
+                one, and so is every connector. The legend promises that an orange
+                dot means Saturday night, and the span between the two ends is the
+                difference the chart is about; neither can change colour row by
+                row and still mean one thing. A short connector is short because
+                the difference is small, not because it matters less.
+
+                Emphasis is carried by the value label, which appears on the
+                highlighted descriptor alone - it singles the row out without
+                redefining any mark in it.
+              */}
+              <circle className="marker-accent" cx={x(row.peak)} cy={y} r={CHART.markerRadius} />
               {isHighlight && (
                 <text className="value-label" x={x(row.peak) + 12} y={y + 4}>
                   {formatNumber(row.peak, 1)}
@@ -111,25 +145,29 @@ export function DescriptorDumbbell({
         })}
 
         {/*
-          Two marks with different meanings, so both are named on the chart.
-
-          Anchored to the two ends of the plot rather than set 128 units apart:
-          that spacing was tuned to one text size, and chart text scales up on
-          narrow screens so the first label grew straight through the second
-          mark. At the edges they cannot meet at any size.
+          Two marks with different meanings, so both are named - and drawn at the
+          sizes the rows use, so the legend teaches the ring-and-disc pairing
+          rather than only the colours. Adjacent rather than at opposite edges:
+          they are the two ends of one row, and the legend should read that way.
         */}
         <g>
-          <circle className="marker-muted" cx={MARGIN.left + 4} cy={MARGIN.top - 14} r={4} />
-          <text className="series-label" x={MARGIN.left + 14} y={MARGIN.top - 10}>
+          <line
+            className="endpoint-tick"
+            x1={MARGIN.left + 8}
+            y1={MARGIN.top - 14 - TICK_HALF_HEIGHT}
+            x2={MARGIN.left + 8}
+            y2={MARGIN.top - 14 + TICK_HALF_HEIGHT}
+          />
+          <text className="series-label" x={MARGIN.left + 22} y={MARGIN.top - 10}>
             baseline night
           </text>
-          <circle className="marker-accent" cx={WIDTH - MARGIN.right - 4} cy={MARGIN.top - 14} r={4} />
-          <text
-            className="series-label"
-            x={WIDTH - MARGIN.right - 14}
-            y={MARGIN.top - 10}
-            textAnchor="end"
-          >
+          <circle
+            className="marker-accent"
+            cx={MARGIN.left + 146}
+            cy={MARGIN.top - 14}
+            r={CHART.markerRadius}
+          />
+          <text className="series-label" x={MARGIN.left + 160} y={MARGIN.top - 10}>
             {peakWeekday} night
           </text>
         </g>

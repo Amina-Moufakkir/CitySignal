@@ -912,6 +912,19 @@ code {
   fill: var(--accent-wash);
 }
 
+/*
+ * The baseline end of a dumbbell, as a short vertical tick.
+ *
+ * Different shape from the filled dot at the other end, so a pair whose values
+ * nearly coincide still reads as two endpoints rather than as a dot inside a
+ * ring. De-emphasis grey: it is the context end, the accent is the subject end.
+ */
+.endpoint-tick {
+  stroke: var(--de-emphasis);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
 .gap-rule {
   stroke: var(--accent);
   stroke-width: 1.5;
