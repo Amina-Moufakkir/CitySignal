@@ -22,8 +22,9 @@ token is used, so these are subject to Socrata's unauthenticated rate limit.
 
 ### 1. Daily counts
 
-Feeds the daily corpus charts (sections 3 and 4) and the weekday/weekend
-comparison (sections 5, 11 and 14) with its bootstrap interval. One row per
+Feeds the citywide comparison (sections 3 and 4, over the current period), the
+daily corpus charts (sections 6 and 7) and the weekday/weekend comparison
+(sections 8 and 14) with its bootstrap interval. One row per
 calendar day with at least one complaint; at most 364 rows per range, against a
 5,000 limit.
 
@@ -39,8 +40,9 @@ Expected row shape — note every value is a string:
 
 ### 2. Hourly counts
 
-Feeds the hour-of-day chart (sections 6 and 14) and, from the same response, the
-night-of-week summary (section 7) and the night grid (section 8). Fetched once
+Feeds the hour-of-day charts (section 9, and section 4 over the current period)
+and, from the same response, the night-of-week summary (section 10) and the night
+grid (section 11). Fetched once
 per range and used three times. At most 364 × 24 = 8,736 rows, against a 10,000
 limit.
 
@@ -54,7 +56,7 @@ https://data.cityofnewyork.us/resource/erm2-nwe9.json?$select=date_trunc_ymd(cre
 
 ### 3. Descriptor by night
 
-Feeds the descriptor decomposition (section 9). Grouped by day of week rather
+Feeds the descriptor decomposition (section 12). Grouped by day of week rather
 than calendar day, which is what keeps it to 169 rows instead of roughly 10,900.
 
 ```
@@ -79,7 +81,48 @@ Monday–Thursday baseline is Sunday. That is asserted in
 | Change | Replace |
 | --- | --- |
 | Stress period | `2024-01-01` → `2025-01-06`, `2024-12-30` → `2026-01-05` |
+| Current period | `2024-01-01` → the current start, `2024-12-30` → the current exclusive end (below) |
 | Another borough | `BROOKLYN` → `MANHATTAN`, `QUEENS`, `BRONX`, `STATEN ISLAND` |
+
+### The current period
+
+Sections 3 and 4 run over a rolling window rather than a fixed one, so that the
+citywide opening describes New York now rather than 2024. The two fixed periods
+below are unchanged and still drive the entire Brooklyn case study.
+
+**Policy.** The latest 52 complete Monday-to-Sunday weeks, ending at the last
+Sunday that is at least seven days old. In `lib/config.ts`:
+
+```ts
+rollingRange(asOf: Date, bufferDays = CURRENT_RANGE_BUFFER_DAYS): Range
+```
+
+It is a pure function of the instant passed to it. `loadPageData` reads the clock
+exactly once and passes that instant both to `rollingRange` and to the refresh
+time printed in the colophon, so the period on the page and the time beneath it
+cannot describe different moments. No other module reads the clock.
+
+**Why it stops seven days short.** 311 is republished daily and its newest
+records are the least settled — requests are still being entered and amended. The
+buffer is a deliberately conservative allowance for that, and nothing more: this
+repository holds no measurement of how far back 311 revisions reach, so no claim
+is made that seven days eliminates them. Because the window is then snapped back
+to a completed Sunday, the newest day it contains is between 7 and 13 days old.
+
+**Why it snaps to Sunday.** 364 days from a Monday to a Sunday is 52 whole weeks,
+which is what makes the denominators exactly 260 weekdays and 104 weekend days
+without counting a returned row. `lib/current-range.test.ts` asserts that shape
+for every possible as-of weekday, and asserts it by running the range through
+`summarize`, which walks the calendar — the same path the analysis uses.
+
+**Timezone.** The buffer subtraction and the Sunday snap are both done in whole
+UTC days, and both are week-scale, so no host offset can change which completed
+Sunday is most recent. The CI matrix runs the range tests under four zones.
+
+**Reproducibility.** Figures from this period are not reproducible from a fixed
+range: they describe whichever 52 weeks were current when the page was built. The
+exact dates and the refresh time are printed on the page for that reason. The
+fixed-period figures below are the reproducible ones.
 
 The stress-period daily query in full:
 
@@ -106,10 +149,14 @@ npm run verify:live
 
 ### Request budget
 
-Fourteen upstream requests per revalidation window, regardless of traffic:
-Brooklyn daily and hourly for both ranges (4), Brooklyn descriptor-by-night for
-both ranges (2), and the other four boroughs daily and hourly for the primary
-range (8). The window is 6 hours.
+Sixteen upstream requests per revalidation window, regardless of traffic:
+Brooklyn daily and hourly for both fixed ranges (4), Brooklyn descriptor-by-night
+for both ranges (2), and all five boroughs daily and hourly over the current
+rolling period (10). The window is 6 hours.
+
+Two more than the previous fourteen. The four non-Brooklyn boroughs used to be
+queried over the fixed 2024 range for a closing explorer; they are now queried
+over the current period for the citywide opening, and Brooklyn joins them there.
 
 ### Not queried
 
@@ -155,30 +202,40 @@ with it.
 **Committed** — derived at runtime from data in this repository.
 **Phase 2–3** — recorded from an analysis that is not committed here.
 
+Figures attached to §3, §4 and §5 come from the rolling current period, so they
+change with it and cannot be checked against a fixed date range. Everything else
+is fixed-period and reproducible.
+
 | Figure | Where | Source | How to reproduce |
 | --- | --- | --- | --- |
-| Daily counts in calendar order, spread and median | §3, §4 | Live | Query 1 → `buildDailySeries` |
-| Weekday and weekend daily means | §5, §11, §14 | Live | Query 1 → `summarize` |
-| Weekend difference, primary (~+77.8%) | §5 | Live | Query 1 |
-| Weekend difference, stress (~+76.3%) | §11 | Live | Query 1, stress range |
-| 95% intervals on both | §5, §11 | Live | `bootstrapPercentageDifference`, seeded |
-| Complaint totals and day counts | §5, §11, §13 | Live | Query 1 |
-| Hour-of-day averages, peak hour and gap | §6, §14 | Live | Query 2 → `summarizeHourly` |
-| Complaints per night by night of week | §7 | Live | Query 2 → `summarizeNights` |
-| Peak night (Saturday) | §7, §8, §9 | Live | `peakNight` — derived, not assumed |
-| Nights counted (52 Mon–Sat, 51 Sun) | §7, §8 | Live | `countCompleteNights` |
-| Every peak night hour by hour; busiest, quietest, median | §8 | Live | Query 2 → `buildNightGrid` |
-| Loud Music/Party share of excess, primary (96.4%) | §9 | Live | Query 3 → `descriptorExcess` |
-| Loud Music/Party share of excess, stress (93.7%) | §9 | Live | Query 3, stress range |
-| Complaints per 1,000 households, all 18 boards | §10 | Committed | `buildBoardRates` |
-| BK04 at 30.6 per 1,000 | §10 | Committed | 1394 / 45491 × 1000 |
-| Top-three share, 38.0% | §10, §12 | Committed | `topBoardShare(3)` |
-| Interval on the top-three share | §12 | Committed | `bootstrapTopShare`, seeded |
-| Density association | §12 | Phase 2–3 | Not reproducible here |
-| Alcohol-licence association | §12 | Phase 2–3 | Not reproducible here |
-| Top-10 BBL share, 10.4% / 8.4% | §12 | Phase 2–3 | Not reproducible here |
-| Single-night location share, 78–81% | §12 | Phase 2–3 | Not reproducible here |
-| Top-three share, stress period, 37.7% | §12 | Phase 2–3 | Not reproducible here |
+| Daily counts in calendar order, spread and median | §6, §7 | Live | Query 1 → `buildDailySeries` |
+| Weekday and weekend daily means | §8, §14 | Live | Query 1 → `summarize` |
+| Weekday and weekend daily means, all five boroughs | §3, §4 | Live | Query 1, current range → `summarize` |
+| Weekend index, weekday = 100 | §3 | Live | `indexComparison` |
+| Largest weekend rise, and whether it ties | §3 | Live | `largestRise` — derived, never fixed |
+| How widely the weekend pattern holds | §5 | Live | `patternBreadth` — derived, never fixed |
+| Weekend difference, primary (~+77.8%) | §8 | Live | Query 1 |
+| Weekend difference, stress (~+76.3%) | §14 | Live | Query 1, stress range |
+| 95% intervals on both | §8, §14 | Live | `bootstrapPercentageDifference`, seeded |
+| Complaint totals and day counts | §8, §14, §16 | Live | Query 1 |
+| Hour-of-day averages, peak hour and gap | §9 | Live | Query 2 → `summarizeHourly` |
+| Hour-of-day averages, selected borough | §4 | Live | Query 2, current range → `summarizeHourly` |
+| Complaints per night by night of week | §10 | Live | Query 2 → `summarizeNights` |
+| Peak night (Saturday) | §10, §11, §12 | Live | `peakNight` — derived, not assumed |
+| Nights counted (52 Mon–Sat, 51 Sun) | §10, §11 | Live | `countCompleteNights` |
+| Every peak night hour by hour; busiest, quietest, median | §11 | Live | Query 2 → `buildNightGrid` |
+| Loud Music/Party share of excess, primary (96.4%) | §12 | Live | Query 3 → `descriptorExcess` |
+| Loud Music/Party share of excess, stress (93.7%) | §12 | Live | Query 3, stress range |
+| Complaints per 1,000 households, all 18 boards | §13 | Committed | `buildBoardRates` |
+| Community-district display names, all 18 boards | §13 | Committed | `BROOKLYN_BOARD_LABELS` — DCP `xn3r-zk6y` |
+| BK04 at 30.6 per 1,000 | §13 | Committed | 1394 / 45491 × 1000 |
+| Top-three share, 38.0% | §13, §15 | Committed | `topBoardShare(3)` |
+| Interval on the top-three share | §15 | Committed | `bootstrapTopShare`, seeded |
+| Density association | §15 | Phase 2–3 | Not reproducible here |
+| Alcohol-licence association | §15 | Phase 2–3 | Not reproducible here |
+| Top-10 BBL share, 10.4% / 8.4% | §15 | Phase 2–3 | Not reproducible here |
+| Single-night location share, 78–81% | §15 | Phase 2–3 | Not reproducible here |
+| Top-three share, stress period, 37.7% | §15 | Phase 2–3 | Not reproducible here |
 | Manhattan +60.9%, 2024 | README | Phase 2–3 | Query 1 with `MANHATTAN` gives the current value |
 | Behavioural-evening effect, +127.3% / +126.2% | README | Phase 2–3 | Not reproducible here |
 | Population-normalized sensitivity check | README | Phase 2–3 | Not reproducible here |
@@ -189,7 +246,7 @@ Nine figures above have no committed derivation. They were computed during
 Phases 2 and 3 in analyses that were never added to this repository, and this
 document records that rather than leaving a reader to discover it. Committing the
 night × board grid used in Phase 3 would make two of them reproducible, and would
-additionally allow the §12 interval to be computed on the correct
+additionally allow the §15 interval to be computed on the correct
 resampling unit — complaints cluster within nights, so the interval currently
 shown is narrower than the data warrants.
 

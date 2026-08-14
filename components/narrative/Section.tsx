@@ -16,6 +16,7 @@ export function Section({
   children,
   wide = false,
   lead = false,
+  hero,
 }: {
   id: SectionId;
   title: ReactNode;
@@ -23,6 +24,17 @@ export function Section({
   wide?: boolean;
   /** The opening section carries the page's only h1. */
   lead?: boolean;
+  /**
+   * Opens the section as a composition rather than a column.
+   *
+   * The section shell owns the eyebrow and the heading - they come from the
+   * running order, not from the caller - so it has to be the thing that wraps
+   * them, and the caller passes in the two pieces that sit with them. The result
+   * is a real container per region rather than siblings pushed around by grid
+   * placement: `.hero-heading`, `.hero-visual` and `.hero-intro` inside a closed
+   * `.hero-composition`, with everything else after it.
+   */
+  hero?: { visual: ReactNode; intro: ReactNode };
 }) {
   const meta = sectionMeta(id);
   const next = nextSection(id);
@@ -31,18 +43,37 @@ export function Section({
   const className = [
     "section",
     wide ? "section-wide" : "",
+    hero ? "section-hero" : "",
     meta.viewportHeight ? "section-tall" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  const eyebrow = (
+    <p className="eyebrow">
+      <span className="eyebrow-index">{String(index).padStart(2, "0")}</span>
+      <span>{meta.eyebrow}</span>
+    </p>
+  );
+  const heading = <Heading id={`${id}-title`}>{title}</Heading>;
+
   return (
     <section id={id} aria-labelledby={`${id}-title`} className={className}>
-      <p className="eyebrow">
-        <span className="eyebrow-index">{String(index).padStart(2, "0")}</span>
-        <span>{meta.eyebrow}</span>
-      </p>
-      <Heading id={`${id}-title`}>{title}</Heading>
+      {hero ? (
+        <div className="hero-composition">
+          <div className="hero-heading">
+            {eyebrow}
+            {heading}
+          </div>
+          {hero.visual}
+          <div className="hero-intro">{hero.intro}</div>
+        </div>
+      ) : (
+        <>
+          {eyebrow}
+          {heading}
+        </>
+      )}
       {children}
       {next && (
         <p className="next-link">

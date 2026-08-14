@@ -12,6 +12,9 @@
 export type SectionId =
   | "hook"
   | "guess"
+  | "citywide"
+  | "borough"
+  | "casestudy"
   | "corpus"
   | "rhythm"
   | "reveal"
@@ -22,8 +25,7 @@ export type SectionId =
   | "where"
   | "persistence"
   | "failed"
-  | "boundaries"
-  | "explore";
+  | "boundaries";
 
 export type SectionMeta = {
   id: SectionId;
@@ -44,7 +46,25 @@ export const SECTIONS: readonly SectionMeta[] = [
   {
     id: "guess",
     eyebrow: "Before the answer",
-    navLabel: "How much more, on a weekend?",
+    navLabel: "Which borough rises most?",
+    viewportHeight: false,
+  },
+  {
+    id: "citywide",
+    eyebrow: "All five boroughs",
+    navLabel: "The weekend rise, city-wide",
+    viewportHeight: true,
+  },
+  {
+    id: "borough",
+    eyebrow: "Your borough",
+    navLabel: "Pick one and look closer",
+    viewportHeight: false,
+  },
+  {
+    id: "casestudy",
+    eyebrow: "Why Brooklyn next",
+    navLabel: "Why the rest is Brooklyn",
     viewportHeight: false,
   },
   {
@@ -108,7 +128,6 @@ export const SECTIONS: readonly SectionMeta[] = [
     navLabel: "What this does and does not establish",
     viewportHeight: false,
   },
-  { id: "explore", eyebrow: "Your turn", navLabel: "Run it yourself", viewportHeight: false },
 ];
 
 const BY_ID = new Map(SECTIONS.map((section) => [section.id, section]));

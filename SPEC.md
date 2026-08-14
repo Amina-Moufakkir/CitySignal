@@ -55,11 +55,18 @@ Descriptor, day-of-week detail, density, nightlife exposure, and repeated-locati
 
 ## Current Supported Capabilities
 
-The CitySignal product surface is a sequential narrative of fourteen sections, one
-claim each, presented in order. The running order is held as data in
-`lib/sections.ts` and is the single source of truth for what the piece contains.
-It supports:
+The CitySignal product surface is a sequential narrative of sixteen sections, one
+claim each, presented in order, in two layers. Sections 2-4 are a current New York
+overview covering all five boroughs; section 5 hands over, and sections 6-16 are
+the Brooklyn case study. The running order is held as data in `lib/sections.ts`
+and is the single source of truth for what the piece contains. It supports:
 
+- a citywide weekday/weekend comparison across all five boroughs over a rolling
+  current period, each borough indexed to its own weekday baseline
+- reader-selected borough profile over that same period, from data already
+  computed on the server
+- an explicit, derived transition stating what the citywide rows established and
+  why the deeper analysis is Brooklyn-only
 - the unaggregated daily corpus, shown before anything is averaged
 - live weekday/weekend comparison, with a confidence interval
 - live hour-of-day comparison
@@ -69,7 +76,6 @@ It supports:
 - live persistence check across a second, non-overlapping period
 - Brooklyn-only household-normalized community-board comparison, from a static extract
 - a record of pre-registered hypotheses that were not supported, each labelled with its source
-- reader-run borough comparison, from data already computed on the server
 - explicit interpretation boundaries, as their own section rather than as footnotes
 - a colophon naming the dataset and the last live refresh, linking to the method
 
@@ -83,8 +89,8 @@ left three of the five unserved; all five are now present:
 
 | Signal | Where |
 | --- | --- |
-| Unusualness | Weekday baseline comparison, with interval |
-| Specificity | Hour, night of week, descriptor, community board |
+| Unusualness | Weekday baseline comparison, with interval; citywide index across five boroughs |
+| Specificity | Borough, hour, night of week, descriptor, community board |
 | Persistence | Second non-overlapping period, computed live |
 | Volume | Underlying complaint counts stated in the prose, not only rates |
 | Interpretation boundary | Its own section, plus per-section boundaries |
@@ -97,6 +103,8 @@ CitySignal must preserve these limitations in product behavior and copy:
 - CitySignal does not establish causation.
 - Complaint counts are not unique noise incidents.
 - Community-board normalization currently exists only for Brooklyn.
+- The citywide comparison indexes each borough to its own weekday baseline. It does not compare boroughs with each other, rank them, or say anything about measured loudness or raw complaint volume.
+- Community-district names are DCP Community District Tabulation Area names. A CDTA approximates a community district and is not a neighbourhood boundary; several cover more than one named neighbourhood.
 - The assumed user need has not been directly validated.
 - CitySignal must not identify problematic residents or buildings.
 - CitySignal must not imply neighborhood quality.
@@ -152,6 +160,21 @@ Phases 1-3 specified a static HTML/CSS/plain-JavaScript architecture, and this s
 **What this decision does not authorise.** It does not authorise adopting a component chart library, a scroll-jacking library, an animation library, or a state-management library. It does not authorise expanding the product surface beyond the decision model. It does not weaken any interpretation boundary for the sake of narrative pacing.
 
 **Preserved for reference.** The Phase 1-3 static build is retained unmodified in `legacy/`, and on the `mvp` branch, which is frozen at `de64d69` — the last commit before this migration — and is published by GitHub Pages so the superseded version stays readable as a running site rather than only as source. `mvp` accepts no changes: preserving a version that continues to drift preserves nothing.
+
+### Current-Period Policy
+
+The citywide layer covers the latest 52 complete Monday-to-Sunday weeks, ending at
+the last Sunday at least seven days old. The buffer is a conservative allowance for
+late additions and revisions to recent 311 records, not a measurement of them.
+
+The period is decided in exactly one place, `rollingRange` in `lib/config.ts`, as a
+pure function of an instant supplied by the caller. The exact dates, the fact that
+the period is 52 complete weeks, the deliberate exclusion of the newest seven days,
+and the last server refresh must all be visible to the reader.
+
+The fixed primary and stress periods are unchanged and continue to define the
+Brooklyn case study. Current-period figures and fixed-period figures describe
+different windows and must never be presented as interchangeable.
 
 ## Source-Of-Truth Boundaries
 

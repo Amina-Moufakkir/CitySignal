@@ -1,11 +1,21 @@
 /**
- * Sections 1-5: the reframe, the guess, the corpus, the same corpus with the
- * weekends marked, and the reveal.
+ * Section 1, and sections 6-8: the reframe, then the opening of the Brooklyn
+ * case study - the corpus, the same corpus with the weekends marked, and the
+ * reveal.
+ *
+ * The reader's guess used to live here and now sits in `ActCity`, asked about
+ * the city rather than about Brooklyn's 2024. The reveal below is consequently
+ * no longer an answer to a question the reader was asked: it is the fixed-year
+ * figure the rest of the investigation is built on, and the citywide section has
+ * already shown that Brooklyn is not alone in it.
  */
 
+import Image from "next/image";
+
+import heroIllustration from "@/public/images/citysignal-311-hero.webp";
 import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DailyCalendar } from "@/components/charts/DailyCalendar";
-import { GuessAwareColumns, GuessComparison, GuessInput } from "./Guess";
+import { DayTypeColumns } from "@/components/charts/DayTypeColumns";
 import { Boundary, KeyFigure, PullQuote, Secondary, Section, Unavailable } from "./Section";
 import { formatNumber, formatPercentage, formatSignedPercentage } from "@/lib/format";
 import { describeFailure } from "@/lib/socrata";
@@ -14,47 +24,65 @@ import type { RangeBundle } from "@/lib/data";
 
 export function HookSection() {
   return (
-    <Section id="hook" title="Where is New York loud?" lead>
-      <p className="lede drop-cap">
-        There is a whole genre of answer. Rankings of the noisiest neighbourhoods. Guides that
-        score a block on how quiet it is. Maps that shade a district darker the more it complains.
-        All built on one public dataset — NYC 311 service requests — and all making the same move:
-        treating a count of complaints as a measurement of sound.
-      </p>
+    <Section
+      id="hook"
+      title="Where is New York loud?"
+      lead
+      hero={{
+        /*
+          The illustration is its own region of the composition, not a sibling
+          nudged into place. On a wide screen the grid puts it beside the heading
+          and the opening paragraph and lets those two decide the row height; on a
+          narrow one the same three regions stack heading, image, paragraph, so
+          the picture is the way into the piece rather than something to scroll
+          past.
 
-      <PullQuote>Nobody in that dataset measured anything. What got recorded is who picked up the phone.</PullQuote>
-      <p>
-        Every record here is a New Yorker deciding that something was worth reporting to 311 — and
-        then reporting it. That decision runs on more than volume. It runs on whether you think
-        anyone will come, whether you have done it before, whether you know the number, whether you
-        expect to still live there next year, and what you assume about the people making the sound.
-      </p>
-      <p>
-        So the pattern below is real, and it is repeatable, and it is not a map of noise. It is a
-        map of reporting. Those are different maps, and the difference is the whole point. This
-        piece follows one pattern in that data as far as it will honestly go — and then stops where
-        the evidence does, which is earlier than a ranking would.
-      </p>
-      <Boundary>
-        Throughout: a complaint is a report, not a measurement. Complaint counts are not unique
-        noise incidents — one address can generate several reports on a single night.
-      </Boundary>
-    </Section>
-  );
-}
-
-export function GuessSection({ bundle }: { bundle: RangeBundle }) {
-  const summary = bundle.daily.status === "ok" ? bundle.daily.value : null;
-  const weekdayAverage =
-    summary && summary.comparison.kind === "computed" ? summary.comparison.weekdayAverage : null;
-
-  return (
-    <Section id="guess" title="How much more, on a weekend?">
-      <p>
-        Take the average number of residential noise complaints Brooklyn files on a weekday. Now
-        take the average for a weekend day. How much bigger is the second number?
-      </p>
-      <GuessInput weekdayAverage={weekdayAverage} />
+          It is supporting content, not decoration, and it carries no claim the
+          prose does not: every figure on this page comes from the data.
+        */
+        visual: (
+          <figure className="hero-visual">
+            <Image
+              src={heroIllustration}
+              alt="Illustration of a 311 operator receiving selected reports from Brooklyn residences, with the Brooklyn Bridge and Lower Manhattan beyond."
+              sizes="(min-width: 74rem) 640px, (min-width: 72rem) 52vw, 100vw"
+              priority
+            />
+          </figure>
+        ),
+        intro: (
+          <p className="lede drop-cap">
+            There is a whole genre of answer. Rankings of the noisiest neighbourhoods. Guides that
+            score a block on how quiet it is. Maps that shade a district darker the more it
+            complains. All built on one public dataset — NYC 311 service requests — and all making
+            the same move: treating a count of complaints as a measurement of sound.
+          </p>
+        ),
+      }}
+    >
+      {/* The argument continues below the closed composition, at the reading
+          measure the rest of the piece uses. */}
+      <div className="hero-continuation">
+        <PullQuote>
+          Nobody in that dataset measured anything. What got recorded is who picked up the phone.
+        </PullQuote>
+        <p>
+          Every record here is a New Yorker deciding that something was worth reporting to 311 — and
+          then reporting it. That decision runs on more than volume. It runs on whether you think
+          anyone will come, whether you have done it before, whether you know the number, whether you
+          expect to still live there next year, and what you assume about the people making the sound.
+        </p>
+        <p>
+          So the pattern below is real, and it is repeatable, and it is not a map of noise. It is a
+          map of reporting. Those are different maps, and the difference is the whole point. This
+          piece follows one pattern in that data as far as it will honestly go — and then stops where
+          the evidence does, which is earlier than a ranking would.
+        </p>
+        <Boundary>
+          Throughout: a complaint is a report, not a measurement. Complaint counts are not unique
+          noise incidents — one address can generate several reports on a single night.
+        </Boundary>
+      </div>
     </Section>
   );
 }
@@ -232,8 +260,6 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
         baseline, across {range.display}
       </KeyFigure>
 
-      <GuessComparison actual={comparison.percentageDifference} />
-
       <ChartFigure
         caption={`Average complaints per day, ${range.display}`}
         table={null}
@@ -249,7 +275,7 @@ export function RevealSection({ bundle }: { bundle: RangeBundle }) {
           </>
         }
       >
-        <GuessAwareColumns
+        <DayTypeColumns
           comparison={comparison}
           weekdayDays={summary.weekdayDays}
           weekendDays={summary.weekendDays}

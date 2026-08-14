@@ -22,7 +22,7 @@ other.
 
 | | What it is | Served from |
 | --- | --- | --- |
-| [citysignal-two.vercel.app](https://citysignal-two.vercel.app) | The current piece. Next.js, server-rendered, fourteen sections. | Vercel, from `main` |
+| [citysignal-two.vercel.app](https://citysignal-two.vercel.app) | The current piece. Next.js, server-rendered, sixteen sections. | Vercel, from `main` |
 | [amina-moufakkir.github.io/CitySignal](https://amina-moufakkir.github.io/CitySignal/) | The original Phase 1–3 build. Static HTML, CSS and plain JavaScript, three charts in one container. | GitHub Pages, from `mvp` |
 
 `mvp` is frozen at `de64d69`, the last commit before the Next.js migration, and
@@ -33,7 +33,8 @@ decision did and did not authorise.
 
 ## Reading it
 
-The piece runs as fourteen sections, one claim each, in order. `lib/sections.ts`
+The piece runs as sixteen sections, one claim each, in order, in two layers: a
+current New York overview, then Brooklyn examined in depth. `lib/sections.ts`
 holds the running order as data — the progress bar, the dot rail, the next-links
 and each section's eyebrow all read from it, so this table describes it rather
 than duplicating it:
@@ -41,25 +42,32 @@ than duplicating it:
 | # | Section | Claim |
 | --- | --- | --- |
 | 1 | Hook | This measures reporting, not noise |
-| 2 | Guess | The reader commits to a number first |
-| 3 | Corpus | Every day of the year, before anything is averaged |
-| 4 | Rhythm | The same chart again, with the weekends picked out |
-| 5 | Reveal | Weekend days run higher than weekdays |
-| 6 | Nights | The difference lives after dark, not across the day |
-| 7 | Saturday | And on one night of the week more than the others |
-| 8 | Every night | On every one of those nights, not a few big ones |
-| 9 | Parties | And in one kind of report more than the others |
-| 10 | Where | Reporting rates differ across Brooklyn community boards |
-| 11 | Persistence | The same shape appears in a second, non-overlapping year |
-| 12 | Failed explanations | Four pre-registered explanations did not survive |
-| 13 | Boundaries | What this does and does not establish |
-| 14 | Explore | The reader runs the comparison for any borough |
+| 2 | Guess | The reader predicts which borough rises most on weekends |
+| 3 | Citywide | All five boroughs, each against its own weekday baseline |
+| 4 | Borough | The reader picks one and reads its profile |
+| 5 | Case study | Why everything after this point is Brooklyn |
+| 6 | Corpus | Every day of the year, before anything is averaged |
+| 7 | Rhythm | The same chart again, with the weekends picked out |
+| 8 | Reveal | Weekend days run higher than weekdays |
+| 9 | Nights | The difference lives after dark, not across the day |
+| 10 | Saturday | And on one night of the week more than the others |
+| 11 | Every night | On every one of those nights, not a few big ones |
+| 12 | Parties | And in one kind of report more than the others |
+| 13 | Where | Reporting rates differ across Brooklyn community boards |
+| 14 | Persistence | The same shape appears in a second, non-overlapping year |
+| 15 | Failed explanations | Four pre-registered explanations did not survive |
+| 16 | Boundaries | What this does and does not establish |
 
 The method is not a section. It lives in `METHOD.md`, reached from a colophon at
 the foot of the page that names the dataset and when the live figures were last
 pulled.
 
-Section 12 is the centre of the piece. Four candidate explanations were written
+Sections 2 to 4 are New York: all five boroughs over a rolling current period,
+and whichever one the reader picks. Section 5 hands over, and the rest is
+Brooklyn — because the committed household denominator and the pre-registered
+geographic tests exist for Brooklyn and nowhere else.
+
+Section 15 is the centre of the piece. Four candidate explanations were written
 down as predictions, each with a number attached, before the data was examined.
 All four came back unsupported. That is presented as the result rather than as a
 gap in it.
@@ -89,7 +97,7 @@ non-framework dependencies.
 **Data is fetched on the server** behind a six-hour revalidation window. That is
 the main technical argument for the current architecture: the page ships real
 content instead of a loading state, the story is readable with JavaScript
-disabled and by crawlers, and NYC Open Data sees fourteen requests per window
+disabled and by crawlers, and NYC Open Data sees sixteen requests per window
 regardless of traffic rather than three per visitor per interaction.
 
 ```
@@ -131,13 +139,22 @@ NYC Open Data,
 is one service request. No app token is used and none is committed; tokens raise
 Socrata's rate limit but do not belong in client code or in Git.
 
-Two periods, each 52 complete Monday-to-Sunday weeks — so each holds exactly 260
-weekdays and 104 weekend days, and neither is skewed by a partial week:
+Three periods, each 52 complete Monday-to-Sunday weeks — so each holds exactly
+260 weekdays and 104 weekend days, and none is skewed by a partial week:
 
-- **Primary:** 2024-01-01 through 2024-12-29
-- **Stress:** 2025-01-06 through 2026-01-04
+- **Current** (sections 2–4, all five boroughs): the latest 52 complete
+  Monday-to-Sunday weeks, recomputed on every revalidation. The window ends at
+  the last completed Sunday at least **seven days** old, because 311 is
+  republished daily and its newest records are the least settled. That buffer is
+  a conservative allowance for late additions and revisions, not a measurement:
+  nothing here establishes how far back 311 revisions actually reach. The exact
+  dates and the last refresh are printed on the page.
+- **Primary** (the Brooklyn case study): 2024-01-01 through 2024-12-29
+- **Stress** (the persistence check): 2025-01-06 through 2026-01-04
 
-They share no days.
+The two fixed periods share no days. Because the current period rolls, its
+figures are not the fixed-period figures and the piece never presents them as
+interchangeable.
 
 Community-board normalization uses 2024 ACS 5-year occupied-household estimates
 aggregated to DCP Community District Tabulation Areas. That dataset is committed

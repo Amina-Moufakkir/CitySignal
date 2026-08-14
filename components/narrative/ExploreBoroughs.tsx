@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Section 14: the reader runs the same comparison themselves.
+ * Section 4: the reader runs the same comparison on the borough they care about.
  *
  * All five boroughs are summarised on the server and arrive with the page, so
  * changing the selection costs no request and cannot fail. The select is a

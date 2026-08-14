@@ -29,7 +29,15 @@ import {
   summarizeHourly,
   summarizeNights,
 } from "../lib/analysis";
-import { DEFAULT_BOROUGH, PRIMARY_RANGE, RANGES, STRESS_RANGE } from "../lib/config";
+import {
+  CITYWIDE_BOROUGH_ORDER,
+  DEFAULT_BOROUGH,
+  PRIMARY_RANGE,
+  RANGES,
+  STRESS_RANGE,
+  rollingRange,
+} from "../lib/config";
+import { WEEKDAY_INDEX, buildBoroughRow, orderBoroughRows } from "../lib/citywide";
 import { dailyUrl, descriptorNightUrl, fetchAggregate, hourlyUrl } from "../lib/socrata";
 import { NARRATIVE_DESCRIPTOR } from "../lib/data";
 
@@ -187,5 +195,51 @@ suite("live verification", () => {
 
   test("the stress period does not overlap the primary period", () => {
     expect(STRESS_RANGE.start >= PRIMARY_RANGE.endExclusive).toBe(true);
+  });
+
+  /**
+   * The citywide layer, against whatever the current period happens to be. These
+   * are structural: the period rolls every week, so there is no fixed figure to
+   * assert. What must hold is that the window is the right shape, that all five
+   * boroughs come back, and that the index is anchored where the chart claims.
+   */
+  test("the current period is 52 whole weeks", () => {
+    const range = rollingRange(new Date());
+    const shape = summarize(range, []);
+
+    expect(shape.weekdayDays).toBe(260);
+    expect(shape.weekendDays).toBe(104);
+  });
+
+  test("all five boroughs return a usable current-period comparison", { timeout: 180_000 }, async () => {
+    const range = rollingRange(new Date());
+    const rows = [];
+
+    for (const borough of CITYWIDE_BOROUGH_ORDER) {
+      const summary = summarize(range, await rowsFor(dailyUrl(range, borough)), borough);
+
+      expect(summary.rejectedRows, borough).toBe(0);
+      expect(summary.weekdayDays, borough).toBe(260);
+      expect(summary.weekendDays, borough).toBe(104);
+      expect(summary.comparison.kind, borough).toBe("computed");
+      rows.push(buildBoroughRow(summary));
+    }
+
+    const ordered = orderBoroughRows(rows);
+
+    expect(ordered).toHaveLength(5);
+    expect(ordered.map((row) => row.borough)).toEqual([...CITYWIDE_BOROUGH_ORDER]);
+
+    for (const row of ordered) {
+      expect(row.index.kind, row.label).toBe("computed");
+
+      if (row.index.kind !== "computed") continue;
+
+      expect(row.index.weekdayIndex, row.label).toBe(WEEKDAY_INDEX);
+      expect(row.index.weekendIndex - WEEKDAY_INDEX).toBeCloseTo(
+        row.index.percentageDifference,
+        6,
+      );
+    }
   });
 });

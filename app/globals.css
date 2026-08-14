@@ -179,6 +179,131 @@ article {
   width: 100%;
 }
 
+/*
+ * The opening, as one composition rather than two cards.
+ *
+ * The structure is in the DOM, not in the placement: `.hero-composition` closes
+ * around exactly the three regions that make up the opening - the heading, the
+ * illustration and the first paragraph - and everything after it is ordinary
+ * article content again. Named grid areas then express both layouts from that one
+ * structure, so neither the markup nor the copy is duplicated to get two
+ * arrangements.
+ *
+ * Stacked first: heading, then image, then the paragraph. The picture is the way
+ * in, so it sits between the headline and the argument.
+ */
+.hero-composition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "heading"
+    "visual"
+    "intro";
+  row-gap: 1.75rem;
+}
+
+.hero-heading {
+  grid-area: heading;
+  min-width: 0;
+}
+
+.hero-visual {
+  grid-area: visual;
+  min-width: 0;
+  margin: 0;
+}
+
+.hero-intro {
+  grid-area: intro;
+  min-width: 0;
+}
+
+/*
+ * The interpretive continuation, centred under the composition at the same
+ * reading width every other section uses - `--measure`, not a second width
+ * invented for the hook.
+ *
+ * The top margin is the deliberate break between the opening and the argument.
+ * It clamps rather than switching at a breakpoint, so it eases from about 2rem
+ * on a phone to 3.5rem on a wide screen; the pull quote's own margin sits inside
+ * that, and the two together give the separation without opening a void.
+ */
+.hero-continuation {
+  width: min(var(--measure), 100%);
+  margin-inline: auto;
+  margin-top: clamp(2rem, 3vw, 3.5rem);
+}
+
+/*
+ * Stacked, the illustration is its own row, so it states an aspect ratio to
+ * reserve its height before the file arrives. 16:9 on a 3:2 original, anchored to
+ * the bottom of the frame: the crop comes off the empty sky and keeps the
+ * operator, the 311 display, the bridge and Lower Manhattan.
+ */
+.hero-visual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: 50% 100%;
+  /* The 6px the rest of the interface rounds to. Clips the picture itself, so
+     the crop is unaffected. */
+  border-radius: 6px;
+}
+
+/*
+ * Composed, once there is room for a second column.
+ *
+ * 72rem rather than 64: at the narrower threshold the text column was 421px and
+ * the headline broke into three lines mid-phrase, which is a headline being
+ * squeezed rather than composed.
+ *
+ * The heading and the paragraph stack in the first column and the illustration
+ * spans both rows of the second, so the text decides one shared height and the
+ * image is cropped to it. Neither column is given a height of its own.
+ */
+@media (min-width: 72rem) {
+  .section-hero > .hero-composition {
+    grid-column: 1 / -1;
+    width: 100%;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-areas:
+      "heading visual"
+      "intro   visual";
+    grid-template-rows: auto 1fr;
+    column-gap: clamp(2.5rem, 4vw, 4.5rem);
+    row-gap: 0;
+    align-items: stretch;
+  }
+
+  .hero-visual {
+    height: 100%;
+  }
+
+  /*
+   * The row decides the height and the picture fills it. `aspect-ratio` is
+   * released here so it cannot argue with the height the grid has already set.
+   */
+  .hero-visual img {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  /*
+   * The argument sits centred beneath the whole composition.
+   *
+   * It spans the section rather than staying in the left column - hung off the
+   * hero's left edge it left the lower half weighted to one side with the image
+   * column empty beneath it. Centred under the full hero, the piece reads as a
+   * full-width opening, a break, then the argument. The text inside stays
+   * left-aligned; only the block moves.
+   */
+  .section-hero > .hero-continuation {
+    grid-column: 1 / -1;
+  }
+}
+
 /* Graphic-led sections claim a viewport, so a chart is never a third of one. */
 @media (min-width: 48rem) {
   .section-tall {
@@ -1147,13 +1272,25 @@ code {
   text-wrap: balance;
 }
 
-.drop-cap::first-letter {
-  float: left;
-  margin: 0.32rem 0.55rem 0 0;
-  color: var(--accent);
-  font-size: 3.6em;
-  font-weight: 600;
-  line-height: 0.78;
+/*
+ * The drop cap is a wide-screen treatment only.
+ *
+ * Once the illustration stacks above the opening paragraph it becomes the way
+ * into the piece, and a drop cap underneath it is a second entrance competing
+ * with the first. Below the width where the hero splits into two columns the
+ * first letter is ordinary body text - no float, no reserved space, no altered
+ * leading - so the paragraph aligns with every other one. One paragraph, one
+ * copy of the words; only the presentation changes.
+ */
+@media (min-width: 72rem) {
+  .drop-cap::first-letter {
+    float: left;
+    margin: 0.32rem 0.55rem 0 0;
+    color: var(--accent);
+    font-size: 3.6em;
+    font-weight: 600;
+    line-height: 0.78;
+  }
 }
 
 .note-head {

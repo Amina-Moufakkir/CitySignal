@@ -1,12 +1,15 @@
 /**
- * Sections 13-14: what this establishes, and the reader's turn.
+ * Section 16: what this establishes, and what it does not.
  *
- * The piece ends on "Run it yourself". The method is no longer a section of it -
- * it is in METHOD.md, reached from the colophon below, which sits outside the
- * article and is not part of the running order.
+ * The borough selector that used to close the piece has moved to section 4,
+ * where it belongs: a reader should meet their own borough before the case
+ * study, not after it. There is one selector, not two.
+ *
+ * The method is not a section of the piece - it is in METHOD.md, reached from
+ * the colophon below, which sits outside the article and is not part of the
+ * running order.
  */
 
-import { ExploreBoroughs, type ExploreBorough } from "./ExploreBoroughs";
 import { Boundary, Secondary, Section } from "./Section";
 import { formatNumber, formatTimestamp } from "@/lib/format";
 import { REVALIDATE_SECONDS } from "@/lib/socrata";
@@ -94,18 +97,6 @@ export function BoundariesSection({ pageData }: { pageData: PageData }) {
         at a community board or in city operations deciding whether a pattern is worth a closer
         look. That assumption has never been tested with an actual such reader.
       </Boundary>
-    </Section>
-  );
-}
-
-export function ExploreSection({ boroughs }: { boroughs: ExploreBorough[] }) {
-  return (
-    <Section id="explore" title="Run it yourself" wide>
-      <p>
-        The same two comparisons, for any borough. Everything here was computed when the page was
-        built, so changing the selection queries nothing.
-      </p>
-      <ExploreBoroughs boroughs={boroughs} />
     </Section>
   );
 }

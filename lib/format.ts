@@ -46,6 +46,38 @@ const MONTHS = [
 ];
 
 /**
+ * A `YYYY-MM-DD` day, written the way a person writes a date.
+ *
+ * Parsed from its components. `new Date("2025-08-04")` would be read as UTC and
+ * then printed through the host zone, which turns the 4th into the 3rd for every
+ * reader west of Greenwich.
+ */
+export function formatDay(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+
+  if (!match) {
+    return iso;
+  }
+
+  const [, year, month, day] = match;
+
+  return `${Number(day)} ${MONTHS[Number(month) - 1] ?? month} ${year}`;
+}
+
+/**
+ * An inclusive span of days. The year is dropped from the opening date when both
+ * ends share it, because "1 January to 29 December 2024" reads and the repeated
+ * year does not.
+ */
+export function formatDaySpan(startIso: string, endInclusiveIso: string): string {
+  const start = formatDay(startIso);
+  const end = formatDay(endInclusiveIso);
+  const sameYear = startIso.slice(0, 4) === endInclusiveIso.slice(0, 4);
+
+  return `${sameYear ? start.replace(/ \d{4}$/, "") : start} to ${end}`;
+}
+
+/**
  * A machine timestamp rendered for a reader. Parsed from its components rather
  * than through `new Date(string)`, keeping the same discipline the analysis uses,
  * and printed in UTC so the server and any reader see the same words.

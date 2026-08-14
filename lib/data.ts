@@ -1,15 +1,26 @@
 /**
  * Page data assembly. Runs on the server, behind the revalidation window.
  *
- * Fourteen upstream requests per window, regardless of traffic:
- *   Brooklyn daily and hourly for both ranges          4
- *   Brooklyn descriptor-by-night for both ranges       2
- *   The other four boroughs, daily and hourly, primary 8
+ * Sixteen upstream requests per window, regardless of traffic:
+ *   Brooklyn daily and hourly, primary and stress       4
+ *   Brooklyn descriptor-by-night for both ranges        2
+ *   All five boroughs, daily and hourly, current period 10
+ *
+ * Two more than the previous fourteen, and a different shape. The four
+ * non-Brooklyn boroughs used to be fetched over the fixed 2024 range to feed a
+ * closing explorer; they are now fetched over the rolling current period to feed
+ * the citywide opening, and Brooklyn joins them there. The fixed ranges are still
+ * fetched, but only for Brooklyn, because only Brooklyn is the case study.
+ *
+ * The citywide five take a lighter path than the case study: a daily summary and
+ * an hourly summary each, with no bootstrap interval, no daily series, no night
+ * summary and no night grid. Those exist to support the Brooklyn investigation
+ * and running them five more times would cost real work for nothing rendered.
  *
  * The hourly response is fetched once per range and feeds the hour-of-day
  * summary, the night-of-week summary (with its calendar-counted denominators)
- * and the night grid, so sections 6, 7 and 8 cost no extra requests between
- * them. Section 9 reuses the peak night derived from the same rows.
+ * and the night grid, so the case-study sections cost no extra requests between
+ * them. The descriptor section reuses the peak night derived from the same rows.
  *
  * Every fetch is independent: one failing section does not blank the others.
  *
@@ -70,13 +81,15 @@ import {
   type NightSummary,
 } from "./analysis";
 import {
-  BOROUGHS,
+  CITYWIDE_BOROUGH_ORDER,
   DEFAULT_BOROUGH,
   PRIMARY_RANGE,
   STRESS_RANGE,
+  rollingRange,
   type Borough,
   type Range,
 } from "./config";
+import { buildBoroughRow, orderBoroughRows, type BoroughRow } from "./citywide";
 import { PHASE3_BOARD_DATASET } from "./static-data";
 import {
   dailyUrl,
@@ -116,15 +129,33 @@ export type DescriptorBundle = {
   excess: DescriptorExcess;
 };
 
+/**
+ * One borough over the current period: enough for the citywide chart and for the
+ * profile a reader opens by selecting it, and nothing else.
+ */
+export type BoroughOverview = {
+  range: Range;
+  borough: Borough;
+  daily: Loaded<DaySummary>;
+  hourly: Loaded<HourlySummary>;
+};
+
 export type PageData = {
-  /** When the server last refreshed. Shown in the Method section. */
+  /** When the server last refreshed. Shown beside the current period and in the colophon. */
   fetchedAt: string;
+  /**
+   * The rolling period the citywide opening covers. Derived from the same instant
+   * as `fetchedAt`, so the dates on the page and the time under them agree.
+   */
+  currentRange: Range;
+  /** All five boroughs over the current period, in the fixed citywide order. */
+  citywide: BoroughOverview[];
+  /** The same five, indexed to their own weekday baselines, for the chart. */
+  citywideRows: BoroughRow[];
   brooklynPrimary: RangeBundle;
   brooklynStress: RangeBundle;
   descriptorsPrimary: DescriptorBundle;
   descriptorsStress: DescriptorBundle;
-  /** All five boroughs over the primary range, for the explore section. */
-  boroughs: RangeBundle[];
   boards: BoardRate[];
   boardShare: { share: number; boards: string[]; total: number };
   boardShareInterval: IntervalResult;
@@ -176,6 +207,30 @@ async function loadRange(range: Range, borough: Borough): Promise<RangeBundle> {
   return { range, borough, daily, dailySeries, dailyInterval, hourly, nights, nightGrid };
 }
 
+/**
+ * A borough over the current period. Two requests, two summaries, nothing else -
+ * see the note at the top of this file on why this path is lighter than
+ * `loadRange`.
+ */
+async function loadBoroughOverview(range: Range, borough: Borough): Promise<BoroughOverview> {
+  const [dailyResult, hourlyResult] = await mapLimited(
+    [dailyUrl(range, borough), hourlyUrl(range, borough)],
+    2,
+    (url) => fetchAggregate(url, FETCH_OPTIONS),
+  );
+
+  return {
+    range,
+    borough,
+    daily: dailyResult.ok
+      ? { status: "ok", value: summarize(range, dailyResult.rows, borough) }
+      : { status: "failed", failure: dailyResult.failure },
+    hourly: hourlyResult.ok
+      ? { status: "ok", value: summarizeHourly(range, hourlyResult.rows, borough) }
+      : { status: "failed", failure: hourlyResult.failure },
+  };
+}
+
 async function loadDescriptors(
   range: Range,
   borough: Borough,
@@ -225,18 +280,24 @@ export function boardShareInterval(): IntervalResult {
 }
 
 export async function loadPageData(): Promise<PageData> {
-  const otherBoroughs = BOROUGHS.map((borough) => borough.value).filter(
-    (borough): borough is Borough => borough !== DEFAULT_BOROUGH,
+  /**
+   * One instant, read once. Everything time-dependent below is derived from it,
+   * so the current period, the dates printed beside it and the refresh time in
+   * the colophon are guaranteed to describe the same moment. Scattering
+   * `new Date()` through the call sites is how a page ends up claiming a period
+   * that ended after the refresh that supposedly produced it.
+   */
+  const now = new Date();
+  const currentRange = rollingRange(now);
+
+  const [brooklynPrimary, brooklynStress] = await mapLimited(
+    [PRIMARY_RANGE, STRESS_RANGE],
+    2,
+    (range) => loadRange(range, DEFAULT_BOROUGH),
   );
 
-  const plan: { range: Range; borough: Borough }[] = [
-    { range: PRIMARY_RANGE, borough: DEFAULT_BOROUGH },
-    { range: STRESS_RANGE, borough: DEFAULT_BOROUGH },
-    ...otherBoroughs.map((borough) => ({ range: PRIMARY_RANGE, borough })),
-  ];
-
-  const [brooklynPrimary, brooklynStress, ...rest] = await mapLimited(plan, CONCURRENCY, (entry) =>
-    loadRange(entry.range, entry.borough),
+  const citywide = await mapLimited(CITYWIDE_BOROUGH_ORDER, CONCURRENCY, (borough) =>
+    loadBoroughOverview(currentRange, borough),
   );
 
   const [descriptorsPrimary, descriptorsStress] = await mapLimited(
@@ -249,12 +310,22 @@ export async function loadPageData(): Promise<PageData> {
   );
 
   return {
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: now.toISOString(),
+    currentRange,
+    citywide,
+    /**
+     * A borough whose daily request failed produces no row here; `orderBoroughRows`
+     * puts a `no-data` row back in its place, so the chart still draws five.
+     */
+    citywideRows: orderBoroughRows(
+      citywide.flatMap((entry) =>
+        entry.daily.status === "ok" ? [buildBoroughRow(entry.daily.value)] : [],
+      ),
+    ),
     brooklynPrimary,
     brooklynStress,
     descriptorsPrimary,
     descriptorsStress,
-    boroughs: [brooklynPrimary, ...rest],
     boards: buildBoardRates(),
     boardShare: topBoardShare(3),
     boardShareInterval: boardShareInterval(),
