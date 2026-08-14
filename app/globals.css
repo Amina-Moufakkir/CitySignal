@@ -1667,21 +1667,51 @@ body::after {
     display: none;
   }
 
-  /*
-   * The board comparison is the one chart the 10px floor cannot be met on.
-   *
-   * Eighteen boards are drawn 32 units apart, which on a 390px phone is 10.6
-   * screen pixels of pitch per row - a row cannot hold a label as tall as
-   * itself, so there is no type size that is both 10px and non-overlapping. It
-   * is sized to the pitch instead: about 9px, tight but clear of its neighbours,
-   * where the alternative was labels crossing each other.
-   *
-   * Every rate is in the table twin, and the section names the boards it is
-   * making a point about in the prose. Giving this chart more height at narrow
-   * widths is the real fix and wants a change to its geometry, not its type.
-   */
-  .row-label-dense {
-    font-size: 0.69em;
+}
+
+/* ---------- Board comparison ---------- */
+
+/*
+ * BoardBars ships two viewBoxes and this picks one. See the header of
+ * BoardBars.tsx for why it has to be two.
+ *
+ * The query is on the chart's own width, not the viewport's. This chart is drawn
+ * far narrower than the page that holds it - 216px of chart inside a 320px
+ * viewport, once the section and the plate have taken their padding - so a
+ * viewport breakpoint would switch it at the wrong moment in both directions.
+ * That was the mistake the night grid made.
+ */
+.board-bars {
+  container-type: inline-size;
+  container-name: board-bars;
+}
+
+.board-bars-compact {
+  display: none;
+}
+
+/*
+ * The unit caption is de-emphasised everywhere else at 0.917em, which in the
+ * narrow form lands at 10.5px on a 320px screen. It names the denominator, so it
+ * is not fine print here: it holds the root size and stays quiet through colour
+ * alone. Scoped to this form so the wide caption is untouched.
+ */
+.board-bars-compact .tick-faint {
+  font-size: 1em;
+}
+
+/*
+ * 20rem of chart. Above it the concise label and its value share a line with
+ * room to spare; below it they collide, and the label can only be kept on one
+ * line by shrinking it out of legibility.
+ */
+@container board-bars (max-width: 20rem) {
+  .board-bars-wide {
+    display: none;
+  }
+
+  .board-bars-compact {
+    display: block;
   }
 }
 

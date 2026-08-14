@@ -157,8 +157,10 @@ figures are not the fixed-period figures and the piece never presents them as
 interchangeable.
 
 Community-board normalization uses 2024 ACS 5-year occupied-household estimates
-aggregated to DCP Community District Tabulation Areas. That dataset is committed
-and static; everything else is live.
+aggregated to DCP Community District Tabulation Areas. Community-district display
+names come from DCP's own CDTA dataset (`xn3r-zk6y`), filtered to `cdtatype = '0'`
+so that Joint Interest Areas — Prospect Park, Jamaica Bay — are not mistaken for
+community districts. Both are committed and static; everything else is live.
 
 ## What the piece does not claim
 

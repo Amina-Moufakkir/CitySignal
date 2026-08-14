@@ -8,6 +8,7 @@
  */
 
 import { BoardBars } from "@/components/charts/BoardBars";
+import { boardDisplayName, BOARD_LABEL_SOURCE } from "@/lib/board-labels";
 import { ChartFigure } from "@/components/charts/ChartFrame";
 import { DayTypeColumns } from "@/components/charts/DayTypeColumns";
 import { IntervalPlot } from "@/components/charts/IntervalPlot";
@@ -62,8 +63,9 @@ export function WhereSection({
       </p>
 
       <KeyFigure value={formatNumber(top.complaintsPer1000Households, 1)}>
-        Saturday-night complaints per 1,000 occupied households in {top.board}, against{" "}
-        {formatNumber(bottom.complaintsPer1000Households, 1)} in {bottom.board}
+        Saturday-night complaints per 1,000 occupied households in{" "}
+        {boardDisplayName(top.board)}, against{" "}
+        {formatNumber(bottom.complaintsPer1000Households, 1)} in {boardDisplayName(bottom.board)}
       </KeyFigure>
 
       <ChartFigure
@@ -71,11 +73,14 @@ export function WhereSection({
         table={null}
         note={
           <>
-            {top.board} reports {formatNumber(top.complaintsPer1000Households, 1)} per 1,000
-            households — about {formatNumber(top.complaintsPer1000Households / bottom.complaintsPer1000Households, 1)}{" "}
-            times {bottom.board}, the lowest. The three highest-count boards (
-            {boardShare.boards.join(", ")}) hold {formatPercentage(boardShare.share)} of{" "}
-            {formatNumber(boardShare.total)} complaints between them.
+            {boardDisplayName(top.board)} reports{" "}
+            {formatNumber(top.complaintsPer1000Households, 1)} per 1,000 occupied households —
+            about{" "}
+            {formatNumber(top.complaintsPer1000Households / bottom.complaintsPer1000Households, 1)}{" "}
+            times {boardDisplayName(bottom.board)}, the lowest. The three highest-count boards (
+            {boardShare.boards.map((board) => boardDisplayName(board)).join("; ")}) hold{" "}
+            {formatPercentage(boardShare.share)} of {formatNumber(boardShare.total)} complaints
+            between them.
           </>
         }
       >
@@ -90,7 +95,10 @@ export function WhereSection({
             ? ` Extracted ${metadata.extractedOn}.`
             : " The extraction date was not recorded."}{" "}
           Denominator: {metadata.denominatorSource}. Community-board normalization exists only for
-          Brooklyn.
+          Brooklyn. District names are {BOARD_LABEL_SOURCE.publisher} Community District Tabulation
+          Area names, from {BOARD_LABEL_SOURCE.dataset} (<code>{BOARD_LABEL_SOURCE.datasetId}</code>);
+          a CDTA is DCP&rsquo;s approximation of a community district, not a neighbourhood boundary,
+          and several cover more than one named neighbourhood.
         </span>
         {shortfall !== null && liveTotal !== null && (
           <span className="note-block">

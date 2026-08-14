@@ -226,9 +226,9 @@ is fixed-period and reproducible.
 | Every peak night hour by hour; busiest, quietest, median | §11 | Live | Query 2 → `buildNightGrid` |
 | Loud Music/Party share of excess, primary (96.4%) | §12 | Live | Query 3 → `descriptorExcess` |
 | Loud Music/Party share of excess, stress (93.7%) | §12 | Live | Query 3, stress range |
-| Complaints per 1,000 households, all 18 boards | §13 | Committed | `buildBoardRates` |
+| Complaints per 1,000 occupied households, all 18 boards | §13 | Committed | `buildBoardRates` |
 | Community-district display names, all 18 boards | §13 | Committed | `BROOKLYN_BOARD_LABELS` — DCP `xn3r-zk6y` |
-| BK04 at 30.6 per 1,000 | §13 | Committed | 1394 / 45491 × 1000 |
+| BK04 · Bushwick at 30.6 per 1,000 occupied households | §13 | Committed | 1394 / 45491 × 1000 |
 | Top-three share, 38.0% | §13, §15 | Committed | `topBoardShare(3)` |
 | Interval on the top-three share | §15 | Committed | `bootstrapTopShare`, seeded |
 | Density association | §15 | Phase 2–3 | Not reproducible here |
@@ -320,3 +320,76 @@ Both fall on a Sunday, so the effect is confined to the weekend series and to tw
 of twenty-four hours. It does not touch the daily comparison at all. It is
 disclosed next to the chart it affects rather than corrected, because correcting
 it would mean inventing a value for an hour that did not happen.
+
+---
+
+## Community-district names
+
+The board chart, its accessible name, its table twin, the key figures and the
+prose all label boards as `BK04 · Bushwick` rather than `BK04`.
+
+**Source.** NYC Department of City Planning, *2020 Community District Tabulation
+Areas (CDTAs) - Tabular*, NYC Open Data `xn3r-zk6y`, field `cdtaname`, filtered
+to `borocode = '3' AND cdtatype = '0'`. Retrieved 12 August 2026 and committed to
+`lib/board-labels.ts`; the names were taken from that response rather than
+written from memory.
+
+```
+https://data.cityofnewyork.us/resource/xn3r-zk6y.json?$where=borocode='3'%20AND%20cdtatype='0'&$select=cdta2020,cdtaname&$order=cdta2020
+```
+
+**Why `cdtatype = '0'`.** The same query without it returns two further Brooklyn
+rows — `BK55 Prospect Park` and `BK56 Jamaica Bay (West)` — which are Joint
+Interest Areas, not community districts. They have no community board. Including
+them would have invented two districts.
+
+**What the names are.** A CDTA is DCP's approximation of a community district,
+built by aggregating whole census tracts so ACS estimates can be reported against
+it. DCP marks each one *Equivalent* where the tracts line up with the legal
+district and *Approximation* where they do not. That status is part of the
+official name and is kept on every committed record and printed in the table
+twin; it is the CDTA-versus-legal-boundary caveat, stated by the source itself.
+
+**What they are not.** They are district display names, not neighbourhood
+boundaries, and several cover more than one named neighbourhood — BK02 is
+Downtown Brooklyn *and* Fort Greene. A community district does not equal one
+universally agreed neighbourhood, and the concise label is a shorter form of an
+official name rather than a claim about where a neighbourhood ends.
+
+| Committed field | Holds |
+| --- | --- |
+| `board` | The code used throughout the analysis, `BK01`–`BK18` |
+| `name` | The district name, code and status suffix removed |
+| `status` | DCP's `equivalent` or `approximation` |
+| `officialName` | DCP's complete `cdtaname`, verbatim |
+
+**The eighteen, as committed.** Two are *Equivalent*; the other sixteen are
+*Approximation*, which is the caveat above stated board by board rather than
+once. The concise label is what the chart, the key figures and the prose print;
+the official name is what the table twin and the chart's accessible name carry.
+
+| Concise label | Official CDTA name | Status |
+| --- | --- | --- |
+| `BK01 · Williamsburg-Greenpoint` | BK01 Williamsburg-Greenpoint (CD 1 Equivalent) | Equivalent |
+| `BK02 · Downtown Brooklyn-Fort Greene` | BK02 Downtown Brooklyn-Fort Greene (CD 2 Approximation) | Approximation |
+| `BK03 · Bedford-Stuyvesant` | BK03 Bedford-Stuyvesant (CD 3 Approximation) | Approximation |
+| `BK04 · Bushwick` | BK04 Bushwick (CD 4 Equivalent) | Equivalent |
+| `BK05 · East New York-Cypress Hills` | BK05 East New York-Cypress Hills (CD 5 Approximation) | Approximation |
+| `BK06 · Park Slope-Carroll Gardens` | BK06 Park Slope-Carroll Gardens (CD 6 Approximation) | Approximation |
+| `BK07 · Sunset Park-Windsor Terrace` | BK07 Sunset Park-Windsor Terrace (CD 7 Approximation) | Approximation |
+| `BK08 · Crown Heights (North)` | BK08 Crown Heights (North) (CD 8 Approximation) | Approximation |
+| `BK09 · Crown Heights (South)` | BK09 Crown Heights (South) (CD 9 Approximation) | Approximation |
+| `BK10 · Bay Ridge-Dyker Heights` | BK10 Bay Ridge-Dyker Heights (CD 10 Approximation) | Approximation |
+| `BK11 · Bensonhurst-Bath Beach` | BK11 Bensonhurst-Bath Beach (CD 11 Approximation) | Approximation |
+| `BK12 · Borough Park-Kensington` | BK12 Borough Park-Kensington (CD 12 Approximation) | Approximation |
+| `BK13 · Coney Island-Brighton Beach` | BK13 Coney Island-Brighton Beach (CD 13 Approximation) | Approximation |
+| `BK14 · Flatbush-Midwood` | BK14 Flatbush-Midwood (CD 14 Approximation) | Approximation |
+| `BK15 · Sheepshead Bay-Gravesend (East)` | BK15 Sheepshead Bay-Gravesend (East) (CD 15 Approximation) | Approximation |
+| `BK16 · Ocean Hill-Brownsville` | BK16 Ocean Hill-Brownsville (CD 16 Approximation) | Approximation |
+| `BK17 · East Flatbush` | BK17 East Flatbush (CD 17 Approximation) | Approximation |
+| `BK18 · Canarsie-Flatlands` | BK18 Canarsie-Flatlands (CD 18 Approximation) | Approximation |
+
+`lib/board-labels.test.ts` asserts all eighteen boards are covered, that the codes
+match the committed complaint dataset exactly, that there are no duplicates or
+gaps, that the status and complete official name survive on every record, and
+that the Joint Interest Areas are absent.
