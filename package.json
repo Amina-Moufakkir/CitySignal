@@ -17,7 +17,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "verify:live": "VERIFY_LIVE=1 vitest run --config vitest.live.config.mts"
   },
   "dependencies": {
