@@ -32,11 +32,13 @@
   --measure: 34rem;
   --measure-wide: 74rem;
   --rail-width: 16rem;
-  /* The rail's own geometry. The active label is a separate element positioned
-     from its section, so it needs these to land on the rail's label column. */
+  /* The rail's own geometry: where the column sits and how its dots are drawn. */
   --rail-right: 1.25rem;
   --rail-dot-size: 7px;
   --rail-gap: 0.6rem;
+  /* The header row that carries the active section's name. Fixed, so the row
+     cannot change height when a longer name replaces a shorter one. */
+  --chrome-bar-height: 2.25rem;
 
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: var(--font-display), var(--sans);
@@ -455,17 +457,82 @@ code {
   text-underline-offset: 4px;
 }
 
-/* ---------- Progress bar ---------- */
+/* ---------- Top chrome ---------- */
 
-.progress {
+/*
+ * Where you are, as status rather than annotation.
+ *
+ * The active section's name used to hang off the dot rail and line up with that
+ * section's eyebrow, which made it an annotation pointing at a heading - and an
+ * annotation needs somewhere to point, so it vanished the moment the heading
+ * scrolled away, and it needed a gutter carved out of the article to have
+ * anywhere to sit. It is not an annotation. It is navigation status, and status
+ * belongs in the chrome.
+ *
+ * So the progress bar and the section name are one fixed strip at the top. The
+ * name is stable: it changes when the section changes and at no other time. The
+ * rail keeps the reading position and the links; the eyebrow inside the article
+ * keeps section identity in the page. Three things, three places, no overlap.
+ */
+.chrome {
   position: fixed;
   inset: 0 0 auto;
-  z-index: 10;
+  z-index: 20;
+  background: var(--surface);
+}
+
+.progress {
   display: flex;
   gap: 2px;
   padding: 0 2px;
   height: 3px;
   background: var(--surface);
+}
+
+/*
+ * A fixed height, not a computed one. The name is the only thing in this row and
+ * it changes sixteen times as the reader goes down the page; if the row sized
+ * itself to its contents, a longer name would move the whole page down. The
+ * height is declared once and the sixteen names live inside it.
+ *
+ * Absent below the width where the rail appears, because the piece has no
+ * desktop navigation there and a phone does not need a second header.
+ */
+.chrome-section {
+  display: none;
+  align-items: center;
+  height: var(--chrome-bar-height);
+  margin: 0;
+  /* Paragraphs are capped at the reading measure everywhere else. This one is
+     chrome, not prose, and needs the strip's own width. */
+  max-width: none;
+  padding: 0 1.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--ink-secondary);
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/*
+ * 64.0625rem, not 64rem: the rail hides at `max-width: 64rem`, and the header
+ * and that rule must not both apply at exactly 1024px.
+ *
+ * The article moves down by the height of the strip rather than sideways. The
+ * measure, the plates and the hero keep every pixel of width they had - the
+ * mistake the discarded gutter made was paying for chrome out of the article.
+ */
+@media (min-width: 64.0625rem) {
+  .chrome-section {
+    display: flex;
+  }
+
+  main {
+    padding-top: calc(var(--chrome-bar-height) + 3px);
+  }
 }
 
 .progress-segment {
@@ -566,84 +633,6 @@ code {
   }
 }
 
-/*
- * The active label, positioned from its section rather than from the rail.
- *
- * The rail is centred in the viewport, so the active item's own label sat
- * wherever that item happened to fall in a column of fourteen dots - near the
- * top for section three - while the eyebrow it named was somewhere else
- * entirely. The two positions were unrelated, and the label read as belonging to
- * the rail rather than to the section.
- *
- * So the label leaves the rail. The dots keep their stable centred geometry and
- * never move; this one element is placed on the active eyebrow's line, from that
- * eyebrow's measured rect. It sits in the same column the rail's own labels open
- * into - right edge one dot plus one gap in from the rail - so the two forms are
- * the same object seen at rest and in use, and it clears the article at the same
- * width they do.
- *
- * It is shown only while `data-aligned="true"`, which ReadingNav sets when the
- * eyebrow's centre is inside the safe region. There is no fallback position: a
- * label with nothing to point at is absent, not parked at an edge.
- */
-.rail-marker {
-  position: fixed;
-  top: 0;
-  right: calc(var(--rail-right) + var(--rail-dot-size) + var(--rail-gap));
-  z-index: 10;
-  display: none;
-  max-width: var(--rail-width);
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  /* A pointer at a heading, never a target. */
-  pointer-events: none;
-  opacity: 0;
-  color: var(--ink-secondary);
-  font-family: var(--sans);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  /*
-   * The vertical position is a plain translate off a custom property that
-   * ReadingNav writes, and nothing transitions it. A transition here would leave
-   * the label trailing the page while the reader scrolls, which is the chasing
-   * that reads as unstable; moving with the eyebrow reads as attached to it.
-   * Only the fade is animated. `-50%` is half the label's own height, which is
-   * what puts its centre on the line rather than its top.
-   */
-  transform: translateY(calc(var(--rail-marker-y, 50vh) - 50%));
-  transition: opacity 200ms ease;
-}
-
-.rail-marker[data-aligned="true"] {
-  opacity: 1;
-}
-
-/* Same reasoning, and the same threshold, as the labels inside the rail. */
-@media (min-width: 104rem) {
-  .rail-marker {
-    display: block;
-  }
-}
-
-/*
- * Two ways the rail's own label and this one would be on screen together.
- *
- * Keyboard focus is the absolute one: a focused dot names a section the reader
- * is choosing, and that label is the answer, so this one steps out whichever dot
- * holds focus - the two are never up at once.
- *
- * Hover is narrowed to the active item alone, the only pointer case that puts
- * the same words in two places. Hovering any other dot names a different
- * section, which is not a duplicate, and merely resting the pointer in the
- * rail's column must not decide whether the reader can see where they are.
- */
-.rail:has(a:focus-visible) ~ .rail-marker,
-.rail:has(.rail-item-active a:hover) ~ .rail-marker {
-  opacity: 0;
-}
 
 /*
  * Focus is the exception at every width. A sighted keyboard user has to be able
