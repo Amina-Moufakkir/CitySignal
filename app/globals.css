@@ -1796,6 +1796,36 @@ body::after {
 
 }
 
+/* ---------- Descriptor comparison ---------- */
+
+/*
+ * DescriptorDumbbell ships its legend inline and stacked, and this picks one.
+ * See the header of DescriptorDumbbell.tsx for why it has to be two drawings
+ * rather than two stylesheets.
+ *
+ * 42rem of chart. Above it "baseline night" is at most 98 units against the 124
+ * available before the next entry; at 664px of chart it is 125 and the gap is
+ * down to 13, and every width below that overlaps outright.
+ */
+.descriptor-dumbbell {
+  container-type: inline-size;
+  container-name: descriptor-dumbbell;
+}
+
+.descriptor-legend-stacked {
+  display: none;
+}
+
+@container descriptor-dumbbell (max-width: 42rem) {
+  .descriptor-legend-inline {
+    display: none;
+  }
+
+  .descriptor-legend-stacked {
+    display: block;
+  }
+}
+
 /* ---------- Board comparison ---------- */
 
 /*

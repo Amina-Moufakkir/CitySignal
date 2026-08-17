@@ -32,67 +32,109 @@ const MARGIN = { top: 30, right: 64, bottom: 56, left: 132 };
  */
 const TICK_HALF_HEIGHT = 11;
 
+/**
+ * Vertical centring for legend text on its mark, in `em` so it tracks the type.
+ *
+ * The legend used to sit its baseline four units under the mark's centre, which
+ * is right at 12-unit type and wrong everywhere else: chart text is sized
+ * against the chart's own width, so on a phone this type is nearly four times
+ * that and the labels rode ten units high of their marks.
+ */
+const CENTRE_TEXT = "0.32em";
+
+/**
+ * Two legends, because one line cannot hold both entries at every width.
+ *
+ * The entries sit side by side - they are the two ends of one row, not two
+ * unrelated keys - and at full size "baseline night" is 83 units against the 124
+ * available before the second mark. But chart text grows as the chart shrinks,
+ * and by 440px that label is 199 units and runs straight through the entry
+ * beside it. Shrinking the type to fit is what the sizing rule exists to
+ * prevent, and abbreviating either entry would leave the legend explaining
+ * itself in shorthand.
+ *
+ * So below the width where they fit honestly the two entries stack, aligned on
+ * one left edge, still adjacent and still reading as a pair. That is a taller
+ * chart with a different top margin, and a viewBox is an attribute rather than
+ * something a media query can reach, so both are rendered and a container query
+ * shows one. The query is on the chart's own width because this chart is drawn
+ * far narrower than the viewport that holds it.
+ */
+const LEGEND_STEP = 58;
+
+type Geometry = {
+  className: string;
+  /** Distance from the top of the viewBox to the top of the plot. */
+  marginTop: number;
+  stacked: boolean;
+};
+
+/* Unchanged: the plot this ships at full size is the plot it always shipped. */
+const INLINE: Geometry = { className: "descriptor-legend-inline", marginTop: 30, stacked: false };
+
+/*
+ * One legend line taller. `marginTop` clears the second entry's tick and the
+ * descenders of its label at the largest type this form is ever drawn with.
+ */
+const STACKED: Geometry = {
+  className: "descriptor-legend-stacked",
+  marginTop: 30 + LEGEND_STEP + 8,
+  stacked: true,
+};
+
 type Row = { descriptor: string; baseline: number; peak: number };
 
 function perNight(total: number | undefined, nights: number): number {
   return nights === 0 ? 0 : (total ?? 0) / nights;
 }
 
-export function DescriptorDumbbell({
-  summary,
+function Plot({
+  rows,
   peakWeekday,
   baselineWeekdays,
   highlight,
+  geometry,
 }: {
-  summary: DescriptorNightSummary;
+  rows: Row[];
   peakWeekday: WeekdayLabel;
   baselineWeekdays: readonly WeekdayLabel[];
   highlight: string;
+  geometry: Geometry;
 }) {
-  const peakRow = summary.weekdays.find((row) => row.weekday === peakWeekday);
-  const baselineRows = summary.weekdays.filter((row) => baselineWeekdays.includes(row.weekday));
-
-  if (!peakRow || baselineRows.length === 0) {
-    return null;
-  }
-
-  const rows: Row[] = summary.descriptors
-    .map((descriptor) => ({
-      descriptor,
-      peak: perNight(peakRow.byDescriptor[descriptor], peakRow.nightsCounted),
-      baseline:
-        baselineRows.reduce(
-          (sum, row) => sum + perNight(row.byDescriptor[descriptor], row.nightsCounted),
-          0,
-        ) / baselineRows.length,
-    }))
-    .filter((row) => row.peak > 0.05 || row.baseline > 0.05)
-    .sort((a, b) => b.peak - a.peak);
-
-  const height = MARGIN.top + MARGIN.bottom + rows.length * ROW_HEIGHT;
+  const marginTop = geometry.marginTop;
+  const height = marginTop + MARGIN.bottom + rows.length * ROW_HEIGHT;
   const max = niceMax(Math.max(...rows.map((row) => Math.max(row.peak, row.baseline))));
   const x = scaleLinear().domain([0, max]).range([MARGIN.left, WIDTH - MARGIN.right]);
 
-  return (
-    <>
-      <svg
-        className="chart-svg"
-        style={chartStyle(WIDTH)}
-        viewBox={`0 0 ${WIDTH} ${height}`}
-        role="img"
-        aria-label={`Complaints per night by descriptor, ${baselineWeekdays[0]} to ${baselineWeekdays[baselineWeekdays.length - 1]} baseline compared with ${peakWeekday}.`}
-      >
-        {x.ticks(3).map((tick) => (
-          <g key={tick}>
-            <line className="grid" x1={x(tick)} y1={MARGIN.top} x2={x(tick)} y2={height - MARGIN.bottom} />
-            <text className="tick" x={x(tick)} y={height - MARGIN.bottom + 22} textAnchor="middle">
-              {formatNumber(tick)}
-            </text>
-          </g>
-        ))}
+  /*
+   * The first legend entry sits where it always has, one line above the plot.
+   * Stacked, the second drops a line and returns to the first one's left edge,
+   * so the two labels start at the same x and read as one block.
+   */
+  const legendOne = 16;
+  const legendTwo = geometry.stacked ? legendOne + LEGEND_STEP : legendOne;
+  const markOneX = MARGIN.left + 8;
+  const markTwoX = geometry.stacked ? markOneX : MARGIN.left + 146;
 
-        {rows.map((row, index) => {
-          const y = MARGIN.top + index * ROW_HEIGHT + ROW_HEIGHT / 2;
+  return (
+    <svg
+      className={`chart-svg ${geometry.className}`}
+      style={chartStyle(WIDTH)}
+      viewBox={`0 0 ${WIDTH} ${height}`}
+      role="img"
+      aria-label={`Complaints per night by descriptor, ${baselineWeekdays[0]} to ${baselineWeekdays[baselineWeekdays.length - 1]} baseline compared with ${peakWeekday}.`}
+    >
+      {x.ticks(3).map((tick) => (
+        <g key={tick}>
+          <line className="grid" x1={x(tick)} y1={marginTop} x2={x(tick)} y2={height - MARGIN.bottom} />
+          <text className="tick" x={x(tick)} y={height - MARGIN.bottom + 22} textAnchor="middle">
+            {formatNumber(tick)}
+          </text>
+        </g>
+      ))}
+
+      {rows.map((row, index) => {
+          const y = marginTop + index * ROW_HEIGHT + ROW_HEIGHT / 2;
           const isHighlight = row.descriptor === highlight;
 
           return (
@@ -144,43 +186,87 @@ export function DescriptorDumbbell({
           );
         })}
 
-        {/*
-          Two marks with different meanings, so both are named - and drawn at the
-          sizes the rows use, so the legend teaches the ring-and-disc pairing
-          rather than only the colours. Adjacent rather than at opposite edges:
-          they are the two ends of one row, and the legend should read that way.
-        */}
-        <g>
-          <line
-            className="endpoint-tick"
-            x1={MARGIN.left + 8}
-            y1={MARGIN.top - 14 - TICK_HALF_HEIGHT}
-            x2={MARGIN.left + 8}
-            y2={MARGIN.top - 14 + TICK_HALF_HEIGHT}
-          />
-          <text className="series-label" x={MARGIN.left + 22} y={MARGIN.top - 10}>
-            baseline night
-          </text>
-          <circle
-            className="marker-accent"
-            cx={MARGIN.left + 146}
-            cy={MARGIN.top - 14}
-            r={CHART.markerRadius}
-          />
-          <text className="series-label" x={MARGIN.left + 160} y={MARGIN.top - 10}>
-            {peakWeekday} night
-          </text>
-        </g>
-
-        <text
-          className="tick tick-faint"
-          x={MARGIN.left + (WIDTH - MARGIN.right - MARGIN.left) / 2}
-          y={height - 8}
-          textAnchor="middle"
-        >
-          complaints per night
+      {/*
+        Two marks with different meanings, so both are named - and drawn at the
+        sizes the rows use, so the legend teaches the tick-and-dot pairing rather
+        than only the colours. Adjacent rather than at opposite edges: they are
+        the two ends of one row, and the legend should read that way, stacked or
+        not. Each label is centred on its own mark in `em`, so the pairing holds
+        at every type size this chart is drawn with.
+      */}
+      <g className="chart-legend">
+        <line
+          className="endpoint-tick"
+          x1={markOneX}
+          y1={legendOne - TICK_HALF_HEIGHT}
+          x2={markOneX}
+          y2={legendOne + TICK_HALF_HEIGHT}
+        />
+        <text className="series-label" x={markOneX + 14} y={legendOne} dy={CENTRE_TEXT}>
+          baseline night
         </text>
-      </svg>
+        <circle
+          className="marker-accent"
+          cx={markTwoX}
+          cy={legendTwo}
+          r={CHART.markerRadius}
+        />
+        <text className="series-label" x={markTwoX + 14} y={legendTwo} dy={CENTRE_TEXT}>
+          {peakWeekday} night
+        </text>
+      </g>
+
+      <text
+        className="tick tick-faint"
+        x={MARGIN.left + (WIDTH - MARGIN.right - MARGIN.left) / 2}
+        y={height - 8}
+        textAnchor="middle"
+      >
+        complaints per night
+      </text>
+    </svg>
+  );
+}
+
+export function DescriptorDumbbell({
+  summary,
+  peakWeekday,
+  baselineWeekdays,
+  highlight,
+}: {
+  summary: DescriptorNightSummary;
+  peakWeekday: WeekdayLabel;
+  baselineWeekdays: readonly WeekdayLabel[];
+  highlight: string;
+}) {
+  const peakRow = summary.weekdays.find((row) => row.weekday === peakWeekday);
+  const baselineRows = summary.weekdays.filter((row) => baselineWeekdays.includes(row.weekday));
+
+  if (!peakRow || baselineRows.length === 0) {
+    return null;
+  }
+
+  const rows: Row[] = summary.descriptors
+    .map((descriptor) => ({
+      descriptor,
+      peak: perNight(peakRow.byDescriptor[descriptor], peakRow.nightsCounted),
+      baseline:
+        baselineRows.reduce(
+          (sum, row) => sum + perNight(row.byDescriptor[descriptor], row.nightsCounted),
+          0,
+        ) / baselineRows.length,
+    }))
+    .filter((row) => row.peak > 0.05 || row.baseline > 0.05)
+    .sort((a, b) => b.peak - a.peak);
+
+  const plot = { rows, peakWeekday, baselineWeekdays, highlight };
+
+  return (
+    <>
+      <div className="descriptor-dumbbell">
+        <Plot {...plot} geometry={INLINE} />
+        <Plot {...plot} geometry={STACKED} />
+      </div>
 
       <ChartTable
         summary={`Complaints per night by descriptor: baseline nights compared with ${peakWeekday} nights`}
